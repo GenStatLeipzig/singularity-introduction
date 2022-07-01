@@ -111,10 +111,9 @@ singularity cache list
 singularity cache clean
 ```
 
-
 ### Pull a docker image from Docker Hub
 
-A library with R-specific docker images can be found at [Rocker](https://www.rocker-project.org/images/). Their website also includes an introduction to [Singularity](https://www.rocker-project.org/use/singularity). The following command pulls and converts an [image](https://www.rocker-project.org/images/base/r-devel) from the docker hub, a repository for pre-build docker images from Rocker. Specifications of each image can be found on the respective websites. The advantage of this is to be able do create a container done without specifying a .def file. The large amount of pre-configured images allows users to quickly download containers that come with pre-installed applications for a given task. This will download a file called `r-devel_latest.sif`, a singularity container file into the current working directory. 
+A library with R-specific docker images can be found at [Rocker](https://www.rocker-project.org/images/). Their website also includes an introduction to [Singularity](https://www.rocker-project.org/use/singularity). The following command pulls and converts an [image](https://www.rocker-project.org/images/base/r-devel) from the docker hub, a repository for pre-build docker images from Rocker. Specifications of each image can be found on the respective websites. The advantage of this is to be able do create a singularity container without specifying a .def file. The large amount of pre-configured images allows users to quickly download containers that come with pre-installed applications for a given task. This will download a file called `r-devel_latest.sif`, a singularity container file into the current working directory. 
 
 ```{bash}
 #| eval: false
@@ -122,10 +121,11 @@ A library with R-specific docker images can be found at [Rocker](https://www.roc
 # Download the latest version of the r-devel Rocker Image from Docker Hub
 singularity pull docker://rocker/r-devel
 
-# Instead of downloading, the image can be build using the local singularity instance according t
+# Instead of downloading, the image can be build using the local singularity installation
+singularity build r-devel-built.sif docker://rocker/r-devel
 ```
 
-The docker file for this image can be retrived from [GitHub](https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile). The following chunk downloads the respective dockerfile and deposits it in the folder `resources`.
+The dockerfile for this image can be retrieved from [GitHub](https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile). The following chunk downloads the respective dockerfile and deposits it in the folder `resources`.
 
 ```{bash}
 #| eval: false
@@ -138,15 +138,51 @@ mkdir resources
 mv Dockerfile resources/r_devel_dockerfile
 ```
 
-The file can be inspected to see the configuration for the downloaded image
+The file can be inspected to see the configuration for the downloaded image. Dockerfiles are however not compatible with singularity and cannot be used to build `.sif`-image. Singularity image build recipes are called definition files and end on `.def`. Documentation is again available through the [Sylabs Singularity documentation](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html).
 
 ```{bash}
-cat resources/r_devel_dockerfile
+cat ../resources/r_devel_dockerfile
+```
+
+### Run Image
+
+Users can interact with containers in several ways: Run a pre-specified command, 
+
+* TODO
+
+```{bash}
+#| eval: false
+
+# This command runs the command prespecified in the image
+singularity run r-devel_latest.sif
+
+# This command runs a user-specified command, in this case a call to R that generates 100 normally distributed numbers.
+singularity exec r-devel_latest.sif R --slave -e "rnorm(1e2)"
+
+# TODO
+# Are changes persistent? 
+# immer noch auf Rechner fs, nicht "im" container
+singularity shell r-devel_latest.sif
+
 ```
 
 ### The definition file
 
-[definition file](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#definition-files)
+Specifications of the singularity definition file can again be found in the [official documentation](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#definition-files). It consists of several blocks that define the build-instructions.
+
+*  TODO
+
+For an introduction, we can build our own `.sif`-image based on the light-weight docker image [Alpine](https://hub.docker.com/_/alpine).
+
+```{bash}
+#| eval: false
+
+
+FROM: alpine:latest
+
+
+```
+
 
 ### Investigate Image
 
@@ -183,25 +219,6 @@ singularity capabilities
 
 ```
 
-
-### Run Image
-
-Users can interact with containers in several ways: Run a pre-specified command, 
-
-```{bash}
-#| eval: false
-
-# This command runs the command prespecified in the image
-singularity run r-devel_latest.sif
-
-# This command runs a user-specified command, in this case a call to R that generates 100 normally distributed numbers.
-singularity exec r-devel_latest.sif R --slave -e "rnorm(1e2)"
-
-# Are changes persistent?
-# immer noch auf Rechner fs, nicht "im" container
-singularity shell r-devel_latest.sif
-
-```
 
 
 

@@ -112,9 +112,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <ul class="collapse">
   <li><a href="#installation" id="toc-installation" class="nav-link" data-scroll-target="#installation"> <span class="header-section-number">1.1</span> Installation</a></li>
   <li><a href="#autocompletion" id="toc-autocompletion" class="nav-link" data-scroll-target="#autocompletion"> <span class="header-section-number">1.2</span> Autocompletion</a></li>
-  <li><a href="#investigate-image" id="toc-investigate-image" class="nav-link" data-scroll-target="#investigate-image"> <span class="header-section-number">1.3</span> Investigate Image</a></li>
-  <li><a href="#user-capabilities" id="toc-user-capabilities" class="nav-link" data-scroll-target="#user-capabilities"> <span class="header-section-number">1.4</span> User capabilities</a></li>
-  <li><a href="#run-image" id="toc-run-image" class="nav-link" data-scroll-target="#run-image"> <span class="header-section-number">1.5</span> Run Image</a></li>
+  <li><a href="#pull-a-docker-image-from-docker-hub" id="toc-pull-a-docker-image-from-docker-hub" class="nav-link" data-scroll-target="#pull-a-docker-image-from-docker-hub"> <span class="header-section-number">1.3</span> Pull a docker image from Docker Hub</a></li>
+  <li><a href="#run-image" id="toc-run-image" class="nav-link" data-scroll-target="#run-image"> <span class="header-section-number">1.4</span> Run Image</a></li>
+  <li><a href="#the-definition-file" id="toc-the-definition-file" class="nav-link" data-scroll-target="#the-definition-file"> <span class="header-section-number">1.5</span> The definition file</a></li>
+  <li><a href="#investigate-image" id="toc-investigate-image" class="nav-link" data-scroll-target="#investigate-image"> <span class="header-section-number">1.6</span> Investigate Image</a></li>
+  <li><a href="#user-capabilities" id="toc-user-capabilities" class="nav-link" data-scroll-target="#user-capabilities"> <span class="header-section-number">1.7</span> User capabilities</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -159,10 +161,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 data-number="1.2" class="anchored" data-anchor-id="autocompletion"><span class="header-section-number">1.2</span> Autocompletion</h3>
 <p>Create an auto-completion file to enable Tab-completion when typing singularity commands in the bash command line.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> completion bash <span class="op">&gt;</span> singularity</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mv singularity /etc/bash_completion.d/singularity</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate completion script</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> completion bash <span class="op">&gt;</span> singularity</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Move it to the correct directory</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> mv singularity /etc/bash_completion.d/singularity</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Eine Bibliothek an verschiedenen Images mit R-Installationen gibt es bei <a href="https://www.rocker-project.org/images/">Rocker</a>. Die Website von Rocker enthält ebenso eine Einführung für die Arbeit mit</p>
+<p>Images can either be build locally using the <code>singularity buid</code> command in conjunction with a configuration file (<code>.def</code>-file) or pulled from Docker-Hub, an online resource that makes a large variety of images available for users.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div>
@@ -179,18 +184,48 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 </div>
-<p>The following command pulls and converts an image from the docker hub, a repository for pre-build docker images from Rocker. Specifications of each image can be found on the respective websites. The advantage of this is to be able do create a container done without specifying a .def file. The large amount of pre-configured images allows users to quickly download containers that come with pre-installed applications for a given task.</p>
+<p>The first example in the Singularity documentation is to run an image from Docker hub, the infamous lolcow. The <code>--debug</code>-flag creates verbose output. The <code>singularity run</code>-command does not download the image into the local working directory, but into <code>.singularity/cache</code>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> pull docker://rocker/r-devel</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># display the content of the .singularity directory prior to running the command </span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tree</span> .singularity/cache</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Download and run the image from docker hub</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> <span class="at">--debug</span> run library://lolcow</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># display the content of the .singularity directory after running the command </span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="ex">tree</span> .singularity/cache</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>The docker file for this image can be retrived from <a href="https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile">GitHub</a>. The following chunk downloads the respective dockerfile and deposits it in the folder <code>resources</code>.</p>
+<p>The cache can be inspected using the <code>singularity cache list|clean</code> commands. Images are named after their SHA256-hash, which can make managing many images in cache confusing.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> resources</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> Dockerfile resources/r_devel_dockerfile</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># lists total number of containers in cache and the occupied space</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> cache list</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># deletes all files currently in the `.singularity/cache` folder, while retaining the directories.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> cache clean</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+</section>
+<section id="pull-a-docker-image-from-docker-hub" class="level3" data-number="1.3">
+<h3 data-number="1.3" class="anchored" data-anchor-id="pull-a-docker-image-from-docker-hub"><span class="header-section-number">1.3</span> Pull a docker image from Docker Hub</h3>
+<p>A library with R-specific docker images can be found at <a href="https://www.rocker-project.org/images/">Rocker</a>. Their website also includes an introduction to <a href="https://www.rocker-project.org/use/singularity">Singularity</a>. The following command pulls and converts an <a href="https://www.rocker-project.org/images/base/r-devel">image</a> from the docker hub, a repository for pre-build docker images from Rocker. Specifications of each image can be found on the respective websites. The advantage of this is to be able do create a singularity container without specifying a .def file. The large amount of pre-configured images allows users to quickly download containers that come with pre-installed applications for a given task. This will download a file called <code>r-devel_latest.sif</code>, a singularity container file into the current working directory.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> resources/r_devel_dockerfile</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the latest version of the r-devel Rocker Image from Docker Hub</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> pull docker://rocker/r-devel</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Instead of downloading, the image can be build using the local singularity installation</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> build r-devel-built.sif docker://rocker/r-devel</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The dockerfile for this image can be retrieved from <a href="https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile">GitHub</a>. The following chunk downloads the respective dockerfile and deposits it in the folder <code>resources</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download the docker file from github</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># move it into a seperate folder</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> resources</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> Dockerfile resources/r_devel_dockerfile</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The file can be inspected to see the configuration for the downloaded image. Dockerfiles are however not compatible with singularity and cannot be used to build <code>.sif</code>-image. Singularity image build recipes are called definition files and end on <code>.def</code>. Documentation is again available through the <a href="https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html">Sylabs Singularity documentation</a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ../resources/r_devel_dockerfile</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Emacs, make this -*- mode: sh; -*-
 
@@ -300,40 +335,63 @@ RUN cd /usr/local/bin \
 </div>
 </div>
 </section>
-<section id="investigate-image" class="level3" data-number="1.3">
-<h3 data-number="1.3" class="anchored" data-anchor-id="investigate-image"><span class="header-section-number">1.3</span> Investigate Image</h3>
-<p>Several commands can be used</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> cache list</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> inspect r-devel_latest.sif</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif header r-devel_latest.sif</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif info r-devel_latest.sif</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif list r-devel_latest.sif</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-</section>
-<section id="user-capabilities" class="level3" data-number="1.4">
-<h3 data-number="1.4" class="anchored" data-anchor-id="user-capabilities"><span class="header-section-number">1.4</span> User capabilities</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> capabilities</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-</section>
-<section id="run-image" class="level3" data-number="1.5">
-<h3 data-number="1.5" class="anchored" data-anchor-id="run-image"><span class="header-section-number">1.5</span> Run Image</h3>
+<section id="run-image" class="level3" data-number="1.4">
+<h3 data-number="1.4" class="anchored" data-anchor-id="run-image"><span class="header-section-number">1.4</span> Run Image</h3>
 <p>Users can interact with containers in several ways: Run a pre-specified command,</p>
+<ul>
+<li>TODO</li>
+</ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> run r-devel_latest.sif</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> exec r-devel_latest.sif</span>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># This command runs the command prespecified in the image</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> run r-devel_latest.sif</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Are changes persistent?</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># immer noch auf Rechner fs, nicht "im" container</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> shell r-devel_latest.sif</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># This command runs a user-specified command, in this case a call to R that generates 100 normally distributed numbers.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> exec r-devel_latest.sif R <span class="at">--slave</span> <span class="at">-e</span> <span class="st">"rnorm(1e2)"</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Are changes persistent?</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># immer noch auf Rechner fs, nicht "im" container</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> shell r-devel_latest.sif</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="the-definition-file" class="level3" data-number="1.5">
+<h3 data-number="1.5" class="anchored" data-anchor-id="the-definition-file"><span class="header-section-number">1.5</span> The definition file</h3>
+<p>Specifications of the singularity definition file can again be found in the <a href="https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#definition-files">official documentation</a>. It consists of several blocks that define the build-instructions.</p>
+<ul>
+<li>TODO</li>
+</ul>
+<p>For an introduction, we can build our own <code>.sif</code>-image based on the light-weight docker image <a href="https://hub.docker.com/_/alpine">Alpine</a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">FROM:</span> alpine:latest</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="investigate-image" class="level3" data-number="1.6">
+<h3 data-number="1.6" class="anchored" data-anchor-id="investigate-image"><span class="header-section-number">1.6</span> Investigate Image</h3>
+<p>Several commands can be used to inspect properties of a .sif file (singularity image file).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Displays some meta-data about the image, such as author, licence, build-date</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> inspect r-devel_latest.sif</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Displays info of image header (</span><span class="al">TODO</span><span class="co">)</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif header r-devel_latest.sif</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># List data objects in a SIF file</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif list r-devel_latest.sif</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Print information about the data objects</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif info 1 r-devel_latest.sif</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif info 2 r-devel_latest.sif</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif info 3 r-devel_latest.sif</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> sif info 4 r-devel_latest.sif</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="user-capabilities" class="level3" data-number="1.7">
+<h3 data-number="1.7" class="anchored" data-anchor-id="user-capabilities"><span class="header-section-number">1.7</span> User capabilities</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">singularity</span> capabilities</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <ul>
+<li>was ist mit runnern?</li>
 <li>Motivation: Idiosynchratien von R und HPC streamlinen, Plattformübergreifende Analysem, Reproduzierbarkeit</li>
 <li>Installation: Doku admin und user guide</li>
 <li>SLURM, Nextflow</li>
