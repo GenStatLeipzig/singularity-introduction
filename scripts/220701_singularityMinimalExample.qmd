@@ -1,0 +1,179 @@
+---
+title: "Singularity with R"
+author: "Carl Beuchel"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+  code_download: true
+theme: spacelab #sandstone #flatfly #spacelab
+highlight: pygments
+toc: true  
+toc-depth: 3
+code-folding: show
+number-sections: true
+toc-float:
+  smooth-scroll: true
+editor: source
+editor-options: 
+  chunk-output-type: console
+---
+
+
+  
+```{r setup}
+#| include: false
+#| echo: false
+#| eval: false
+
+# set a more recent R snapshot as source repo
+r = getOption("repos") 
+r["CRAN"] = "https://mran.microsoft.com/snapshot/2022-07-01"
+options(repos = r)
+rm(r)
+
+# Update packages to that snapshot
+update.packages(
+  ask = FALSE, 
+  checkBuilt = TRUE
+  )
+
+# Check unsuccessful updates packages
+old.packages()
+
+# Update V8
+# Sys.setenv(DOWNLOAD_STATIC_LIBV8=1)
+# Sys.getenv("DOWNLOAD_STATIC_LIBV8") # To get around V8 installation
+# install.packages("V8")
+
+# This needed a CXX17 definition in the Makevars
+# install.packages("Boom") # still fails
+
+# needed sudo R CMD rjavareconf 
+# install.packages("rJava")
+
+# install.packages("qs")
+# install.packages("rstanarm")
+```
+
+## Setup
+
+### Installation
+
+Installation instructions for Singularity can be found in the [Singularity User Guide](https://docs.sylabs.io/guides/3.10/user-guide/quick_start.html) and the  [Singularity Admin Guide](https://docs.sylabs.io/guides/3.10/admin-guide/admin_quickstart.html). Following the steps listed under `Quick Start`, it is relatively simple to build Singularity from source.
+
+### Autocompletion
+
+Create an auto-completion file to enable Tab-completion when typing singularity commands in the bash command line.
+
+```{bash}
+#| eval: false
+
+singularity completion bash > singularity
+sudo mv singularity /etc/bash_completion.d/singularity
+```
+
+
+Eine Bibliothek an verschiedenen Images mit R-Installationen gibt es bei [Rocker](https://www.rocker-project.org/images/). Die Website von Rocker enthält ebenso eine Einführung für die Arbeit mit [Singularity](https://www.rocker-project.org/use/singularity)
+
+```{mermaid}
+flowchart LR
+  A(.def-File) --> B(.sif-Image)
+  C[Docker Hub] --> B(.sif-Image)
+  
+```
+
+The following command pulls and converts an image from the docker hub, a repository for pre-build docker images from Rocker. Specifications of each image can be found on the respective websites. The advantage of this is to be able do create a container done without specifying a .def file. The large amount of pre-configured images allows users to quickly download containers that come with pre-installed applications for a given task.
+
+```{bash}
+#| eval: false
+
+singularity pull docker://rocker/r-devel
+```
+
+The docker file for this image can be retrived from [GitHub](https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile). The following chunk downloads the respective dockerfile and deposits it in the folder `resources`.
+
+```{bash}
+#| eval: false
+
+wget https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile
+mkdir resources
+mv Dockerfile resources/r_devel_dockerfile
+```
+
+
+```{bash}
+cat resources/r_devel_dockerfile
+```
+
+
+### Investigate Image
+
+Several commands can be used 
+
+```{bash}
+#| eval: false
+
+singularity cache list
+
+singularity inspect r-devel_latest.sif
+
+
+singularity sif header r-devel_latest.sif
+
+singularity sif info r-devel_latest.sif
+
+singularity sif list r-devel_latest.sif
+
+```
+
+### User capabilities
+
+
+```{bash}
+#| eval: false
+
+singularity capabilities
+
+```
+
+
+### Run Image
+
+Users can interact with containers in several ways: Run a pre-specified command, 
+
+```{bash}
+#| eval: false
+
+singularity run r-devel_latest.sif
+singularity exec r-devel_latest.sif
+
+# Are changes persistent?
+# immer noch auf Rechner fs, nicht "im" container
+singularity shell r-devel_latest.sif
+
+```
+
+
+
+
+
+
+*   Motivation: Idiosynchratien von R und HPC streamlinen, Plattformübergreifende Analysem, Reproduzierbarkeit
+*   Installation: Doku admin und user guide
+*   SLURM, Nextflow
+*   Rocker als Base-R container
+*   OpenBLAS etc?
+*   welche R version
+*   wie können wir die containergröße gering halten?
+*   Download über Rocker
+*   eigene Defininition von .sif per .def
+*   was ist der container?
+*   wie baue ich einen container (base image, per .def file installation vornehmen)
+*   https://jsta.github.io/r-docker-tutorial/ 
+*   https://rviews.rstudio.com/2017/03/29/r-and-singularity/
+*   custom .def file https://github.com/nickjer/singularity-r
+*   Rocker Image overview: 
+*   Rocker Singularity Intro: https://www.rocker-project.org/use/singularity
+*   Singularity erlaubt unit test - Das brauchen wir! "singularity test"
+*   create a "main.R" in the WD and run with "singularity run"
+*   create image from .def with "sudo singularity create --size 4000 tensorflow.img && \ sudo singularity bootstrap tensorflow.img tensorflow.def"
