@@ -68,12 +68,14 @@ Create an auto-completion file to enable Tab-completion when typing singularity 
 ```{bash}
 #| eval: false
 
+# Generate completion script
 singularity completion bash > singularity
+
+# Move it to the correct directory
 sudo mv singularity /etc/bash_completion.d/singularity
 ```
 
-
-Eine Bibliothek an verschiedenen Images mit R-Installationen gibt es bei [Rocker](https://www.rocker-project.org/images/). Die Website von Rocker enthält ebenso eine Einführung für die Arbeit mit [Singularity](https://www.rocker-project.org/use/singularity)
+Images can either be build locally using the `singularity buid` command in conjunction with a configuration file (`.def`-file) or pulled from Docker-Hub, an online resource that makes a large variety of images available for users.
 
 ```{mermaid}
 flowchart LR
@@ -82,12 +84,45 @@ flowchart LR
   
 ```
 
-The following command pulls and converts an image from the docker hub, a repository for pre-build docker images from Rocker. Specifications of each image can be found on the respective websites. The advantage of this is to be able do create a container done without specifying a .def file. The large amount of pre-configured images allows users to quickly download containers that come with pre-installed applications for a given task.
+The first example in the Singularity documentation is to run an image from Docker hub, the infamous lolcow. The `--debug`-flag creates verbose output. The `singularity run`-command does not download the image into the local working directory, but into `.singularity/cache`. 
 
 ```{bash}
 #| eval: false
 
+# display the content of the .singularity directory prior to running the command 
+tree .singularity/cache
+
+# Download and run the image from docker hub
+singularity --debug run library://lolcow
+
+# display the content of the .singularity directory after running the command 
+tree .singularity/cache
+```
+
+The cache can be inspected using the `singularity cache list|clean` commands. Images are named after their SHA256-hash, which can make managing many images in cache confusing.
+
+```{bash}
+#| eval: false
+
+# lists total number of containers in cache and the occupied space
+singularity cache list
+
+# deletes all files currently in the `.singularity/cache` folder, while retaining the directories.
+singularity cache clean
+```
+
+
+### Pull a docker image from Docker Hub
+
+A library with R-specific docker images can be found at [Rocker](https://www.rocker-project.org/images/). Their website also includes an introduction to [Singularity](https://www.rocker-project.org/use/singularity). The following command pulls and converts an [image](https://www.rocker-project.org/images/base/r-devel) from the docker hub, a repository for pre-build docker images from Rocker. Specifications of each image can be found on the respective websites. The advantage of this is to be able do create a container done without specifying a .def file. The large amount of pre-configured images allows users to quickly download containers that come with pre-installed applications for a given task. This will download a file called `r-devel_latest.sif`, a singularity container file into the current working directory. 
+
+```{bash}
+#| eval: false
+
+# Download the latest version of the r-devel Rocker Image from Docker Hub
 singularity pull docker://rocker/r-devel
+
+# Instead of downloading, the image can be build using the local singularity instance according t
 ```
 
 The docker file for this image can be retrived from [GitHub](https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile). The following chunk downloads the respective dockerfile and deposits it in the folder `resources`.
@@ -95,34 +130,46 @@ The docker file for this image can be retrived from [GitHub](https://raw.githubu
 ```{bash}
 #| eval: false
 
+# Download the docker file from github
 wget https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile
+
+# move it into a seperate folder
 mkdir resources
 mv Dockerfile resources/r_devel_dockerfile
 ```
 
+The file can be inspected to see the configuration for the downloaded image
 
 ```{bash}
 cat resources/r_devel_dockerfile
 ```
 
+### The definition file
+
+[definition file](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#definition-files)
 
 ### Investigate Image
 
-Several commands can be used 
+Several commands can be used to inspect properties of a .sif file (singularity image file).
 
 ```{bash}
 #| eval: false
 
-singularity cache list
-
+# Displays some meta-data about the image, such as author, licence, build-date
 singularity inspect r-devel_latest.sif
 
-
+# Displays info of image header (TODO)
 singularity sif header r-devel_latest.sif
 
-singularity sif info r-devel_latest.sif
-
+# List data objects in a SIF file
 singularity sif list r-devel_latest.sif
+
+# Print information about the data objects
+singularity sif info 1 r-devel_latest.sif
+singularity sif info 2 r-devel_latest.sif
+singularity sif info 3 r-devel_latest.sif
+singularity sif info 4 r-devel_latest.sif
+
 
 ```
 
@@ -144,8 +191,11 @@ Users can interact with containers in several ways: Run a pre-specified command,
 ```{bash}
 #| eval: false
 
+# This command runs the command prespecified in the image
 singularity run r-devel_latest.sif
-singularity exec r-devel_latest.sif
+
+# This command runs a user-specified command, in this case a call to R that generates 100 normally distributed numbers.
+singularity exec r-devel_latest.sif R --slave -e "rnorm(1e2)"
 
 # Are changes persistent?
 # immer noch auf Rechner fs, nicht "im" container
@@ -157,7 +207,7 @@ singularity shell r-devel_latest.sif
 
 
 
-
+*   was ist mit runnern?
 *   Motivation: Idiosynchratien von R und HPC streamlinen, Plattformübergreifende Analysem, Reproduzierbarkeit
 *   Installation: Doku admin und user guide
 *   SLURM, Nextflow
