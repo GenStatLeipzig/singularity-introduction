@@ -141,6 +141,8 @@ mv Dockerfile resources/r_devel_dockerfile
 The file can be inspected to see the configuration for the downloaded image. Dockerfiles are however not compatible with singularity and cannot be used to build `.sif`-image. Singularity image build recipes are called definition files and end on `.def`. Documentation is again available through the [Sylabs Singularity documentation](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html).
 
 ```{bash}
+#| eval: false
+
 cat ../resources/r_devel_dockerfile
 ```
 
