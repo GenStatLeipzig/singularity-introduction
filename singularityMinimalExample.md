@@ -1,0 +1,381 @@
+---
+title: "Singularity with R"
+author: "Carl Beuchel"
+date: "10 August, 2022"
+output:
+  html_document:
+  code_download: true
+theme: spacelab #sandstone #flatfly #spacelab
+highlight: pygments
+toc: true  
+toc-depth: 3
+code-folding: show
+number-sections: true
+toc-float:
+  smooth-scroll: true
+editor: source
+editor-options: 
+  chunk-output-type: console
+---
+
+
+  
+
+
+## Setup
+
+### Installation
+
+Installation instructions for Singularity can be found in the [Singularity User
+Guide](https://docs.sylabs.io/guides/3.10/user-guide/quick_start.html) and the
+[Singularity Admin
+Guide](https://docs.sylabs.io/guides/3.10/admin-guide/admin_quickstart.html).
+Following the steps listed under `Quick Start`, it is relatively simple to build
+Singularity from source.
+
+### Add local binary to secure_path
+
+When building singularity locally, the binary is found in the path `/usr/local/bin/`. To be able to build containers, they have to be run as root, but sometimes the `/usr/local/bin/` directory is not in `$PATH` for root, leading to a command not found error when running `sudo singularity`. Therefore it is necessary to append the directory to `secure_path` of the `/etc/sudoers` file. To do this, run the following command:
+
+
+```r
+# edit the /etc/sudoers file with this command
+sudo visudo
+```
+
+Search for a line that specifies the `secure_path`. It might look like this: `Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"`. Sometimes it might be commented out with a `#`. Now add the directory containing the singularity binary by adding it with a prepended `:` to the end of the line and remove the `#` if present, so that it looks similar to this. (NOTE: the directories listed on different machines might be in a different order or contain different directories altogether).
+
+
+```bash
+# the line with ":/usr/local/bin/" appended
+Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin/"
+```
+
+After saving this file, running `sudo singularity` should no longer produce a command not found error.
+
+
+### Autocompletion
+
+Create an auto-completion file to enable Tab-completion when typing singularity
+commands in the bash command line.
+
+
+```bash
+# Generate completion script
+singularity completion bash > singularity
+
+# Move it to the correct directory
+sudo mv singularity /etc/bash_completion.d/singularity
+```
+
+Images (a `.sif`-file) can either be build locally using the `singularity buid`
+command in conjunction with a configuration file (`.def`-file) or pulled from
+Docker-Hub, an online resource that makes a large variety of images available
+for users.
+
+
+```mermaid
+flowchart LR
+  A(.def-File) --> B(.sif-Image)
+  C[Docker Hub] --> B(.sif-Image)
+  
+```
+
+The first example in the Singularity documentation is to run an image from
+Docker hub, the infamous lolcow. The `--debug`-flag creates verbose output. The
+`singularity run`-command does not download the image into the local working
+directory, but into `.singularity/cache`.
+
+
+```bash
+# display the content of the .singularity directory prior to running the command 
+tree .singularity/cache
+
+# Download and run the image from docker hub
+singularity --debug run library://lolcow
+
+# display the content of the .singularity directory after running the command 
+tree .singularity/cache
+```
+
+The cache can be inspected using the `singularity cache list|clean` commands.
+Images are named after their SHA256-hash, which can make managing many images in
+cache confusing.
+
+
+```bash
+# lists total number of containers in cache and the occupied space
+singularity cache list
+
+# deletes all files currently in the `.singularity/cache` folder, while retaining the directories.
+singularity cache clean
+```
+
+### Pull a docker image from Docker Hub
+
+A library with R-specific docker images can be found at
+[Rocker](https://www.rocker-project.org/images/). Their website also includes an
+introduction to [Singularity](https://www.rocker-project.org/use/singularity).
+The following command pulls and converts an
+[image](https://www.rocker-project.org/images/base/r-devel) from the docker hub,
+a repository for pre-build docker images (`SIF` = Singularity Image FIle) from
+Rocker. Specifications of each image can be found on the respective websites.
+The advantage of this is to be able do create a singularity container without
+specifying a .def file. The large amount of pre-configured images allows users
+to quickly download containers that come with pre-installed applications for a
+given task. This will download a file called `r-devel_latest.sif`, a singularity
+container file into the current working directory.
+
+
+```bash
+# Images can also be searched via this command. 
+singularity search rocker
+
+# Download the latest version of the r-devel Rocker Image from Docker Hub
+singularity pull docker://rocker/r-devel
+
+# Instead of downloading, the image can be build using the local singularity installation
+singularity build r-devel-built.sif docker://rocker/r-devel
+```
+
+The dockerfile for this image can be retrieved from
+[GitHub](https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile).
+The following chunk downloads the respective dockerfile and deposits it in the
+folder `resources`.
+
+
+```bash
+# Download the docker file from github
+wget https://raw.githubusercontent.com/rocker-org/r-devel/master/Dockerfile
+
+# move it into a seperate folder
+mkdir resources
+mv Dockerfile resources/r_devel_dockerfile
+```
+
+The file can be inspected to see the configuration for the downloaded image.
+Dockerfiles are however not compatible with singularity and cannot be used to
+build the respective image (`.sif`-file). Singularity image build recipes are
+called definition files and end on `.def`. Documentation is again available
+through the [Sylabs Singularity
+documentation](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html).
+
+
+```bash
+cat ../resources/r_devel_dockerfile
+```
+
+### Run Image
+
+Users can interact with containers in several ways: Run (`singularity run`) a
+pre-specified command (in the `%runscript` section of the definition file), execute (`singularity exec`) and start a shell from
+within the container (`singularity shell`). Using the `shell` command it can be seen that the content of the users' home directory (`/home/$USER`) can still be accessed when running the container. This is one of the mounted directories from the host machine. 
+
+
+
+```bash
+# This command runs the command prespecified in the image. In the case of this container, it simply starts a new R-session.
+singularity run r-devel_latest.sif
+
+# This command runs a user-specified command, in this case a call to R that generates 100 normally distributed numbers.
+singularity exec r-devel_latest.sif R --slave -e "rnorm(1e2)"
+
+# This command opens a shell n the container environment. Notice how the prompt of the shell changes to something like `Singularity>`, but `ls` still returns the contents of your host machine (i. e. /home/YOUR_USER/ ).  This can also be run as root or non-root
+singularity shell r-devel_latest.sif
+```
+
+### The definition file
+
+From scratch, a SIF-file is built using a SingularityCE definition (`.def`)
+file. This way, environment variables, libraries and files can be added to a
+base-container. Specifications of the singularity definition file can again be
+found in the [official
+documentation](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#definition-files).
+It consists of several blocks that define the build-instructions. The main parts are the Header and the Body.
+
+*   Header: Specify the base container to be used for building the image
+*   Body:   Specify all installation instructions like libraries, environment variables, files to be copied into the container etc.
+
+The body contains several sections. A description of each section can be found [here](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#sections). Our first test-SIF will contain the following sections.
+
+*   `%post`: The section contains instructions to be executed at build time. It is used to install software to be used by the container. It can also be used to set environment variables that are set at build time. In this example, it is the date and time when the build command is run
+*   `%environment`: Define environment variables to be set at runtime. In this example, it is the date and time when the container is run. 
+*   `%runscript`: Define commands to be run when the container is executed via `singularity run`. In this case, print the date of container creation and start a R session.
+*   `%labels`: Use to add meta data like author, version etc.
+*   `%help`: Add information meta-data to be displayed when `singularity run-help` is run.
+
+### Our first DEF and SIF
+
+For an introduction, we can build our own `.sif`-image based on the light-weight docker image [Alpine](https://hub.docker.com/_/alpine). The header information about using alpine from docker hub can be found [here](https://docs.sylabs.io/guides/3.10/user-guide/appendix.html#build-docker-module). Then we will update the container library and install R using the alpine package manager `apk` and specify a runscript to start R when using `singularity run`. We will not set any environment variables and leave the field empty. 
+
+
+```bash
+echo \
+"BootStrap: docker
+From: alpine:latest
+
+%post
+    apk update
+    apk upgrade
+    apk add R
+    NOW=\`date\`
+    echo \"export NOW=\\\"\${NOW}\\\"\" >> $SINGULARITY_ENVIRONMENT
+
+%environment
+    START_DATE=\`date\`
+
+%runscript
+    echo \"Container was created \$NOW\"
+    R
+
+%labels
+    AG GenStat @ IMISE
+    
+%help
+    This is a first test container. It starts a R session when executed." \
+    >> alpine_min_r.def
+```
+
+Saving a file containing this chunk under e. g. `alpine_min_r.def`, it can be now be build using by providing the name of the SIF file and the definition file using `singularity build IMAGE_NAME.sif alpine_min_r.def`. This will create the SIF in the current directory. 
+
+
+
+```bash
+# This needs to be run as root
+singularity build alpine_min_r.sif alpine_min_r.def
+
+```
+
+We can now interact with with the newly-created container. 
+
+### Investigate Image
+
+Several commands can be used to inspect properties of a .sif file (singularity image file).
+
+
+```bash
+# Displays some meta-data about the image, such as author, licence, build-date
+singularity inspect alpine_min_r.sif
+
+# Print the text supplied under %help in the DEF
+singularity run-help alpine_min_r.sif
+
+# List data objects in a SIF file
+singularity sif list alpine_min_r.sif
+
+# Displays info of image header (TODO)
+singularity sif header alpine_min_r.sif
+
+# Print information about the data objects
+singularity sif info 1 r-devel_latest.sif
+singularity sif info 2 r-devel_latest.sif
+singularity sif info 3 r-devel_latest.sif
+singularity sif info 4 r-devel_latest.sif
+
+```
+
+
+
+```bash
+singularity inspect --helpfile container.sif  # See the container's help, if provided
+
+```
+
+### User capabilities
+
+
+```bash
+singularity capabilities
+
+```
+
+### Interacting with images
+
+
+```bash
+a
+
+# open shell --> shell is on host system, files will be created on host...
+singularity shell
+
+# execute command from image. We will create a file in the local host directory that we can use later to learn how to handle files in SIFs
+singularity exec alpine_min_r.sif R --slave -e "data(iris);save(iris,file=rDataFile.RData')"
+
+# running a container --> run the "runscript" https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#runscript
+singularity run r-devel-... # --> runs R
+
+```
+
+### The image filesystem
+
+* singularity shell
+* cd /.singularity.d
+* cd /singularity
+
+Information
+
+
+[sdfsdfds](https://docs.sylabs.io/guides/3.10/user-guide/environment_and_metadata.html)
+the def file can be found at `/.singularity`
+
+"This example works because hostfile.txt exists in the user’s home directory. By default SingularityCE bind mounts /home/$USER, /tmp, and $PWD into your container at runtime."
+
+### Building mutable images
+
+
+```bash
+
+# create new image in folder 
+sudo singularity build --sandbox ubuntu/ library://ubuntu
+
+# shell, exec , and run on folder works
+
+# build sandbox into .sif
+singularity build new-sif sandbox
+
+```
+
+### Saving files inside a container TODO
+
+$SINGULARITY_ROOTFS
+
+### Using input files and handling output
+
+Ich möchte `singularity run` mit inputfiles nutzen, z.b. singularity run calling_container.sif --> der dann die rohdaten von irgendwo fetcht
+
+
+
+```bash
+alpine_min_r.sif 
+rDataFile.RData
+```
+
+
+### Use with worklfow DSL (Snakemake, Nextflow)
+
+https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html
+
+### TODO
+
+*   was ist mit runnern?
+*   Motivation: Idiosynchratien von R und HPC streamlinen, Plattformübergreifende Analysem, Reproduzierbarkeit
+*   Installation: Doku admin und user guide
+*   SLURM, Nextflow
+*   Rocker als Base-R container
+*   OpenBLAS etc?
+*   welche R version
+*   wie können wir die containergröße gering halten?
+*   Download über Rocker
+*   eigene Defininition von .sif per .def
+*   was ist der container?
+*   wie baue ich einen container (base image, per .def file installation vornehmen)
+*   https://jsta.github.io/r-docker-tutorial/ 
+*   https://rviews.rstudio.com/2017/03/29/r-and-singularity/
+*   custom .def file https://github.com/nickjer/singularity-r
+*   Rocker Image overview: 
+*   Rocker Singularity Intro: https://www.rocker-project.org/use/singularity
+*   Singularity erlaubt unit test - Das brauchen wir! "singularity test"
+*   create a "main.R" in the WD and run with "singularity run"
+*   create image from .def with "sudo singularity create --size 4000 tensorflow.img && \ sudo singularity bootstrap tensorflow.img tensorflow.def"
+*   Testing: Unit, Integration, Documentation, Regression, 
+*   CI Pipeline: was wollen wir dabei haben?

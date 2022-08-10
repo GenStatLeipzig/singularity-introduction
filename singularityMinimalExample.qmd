@@ -321,6 +321,8 @@ singularity sif info 4 r-devel_latest.sif
 
 
 ```{bash}
+#| eval: false
+
 singularity inspect --helpfile container.sif  # See the container's help, if provided
 
 ```
@@ -337,6 +339,8 @@ singularity capabilities
 ### Interacting with images
 
 ```{bash}
+#| eval: false
+a
 
 # open shell --> shell is on host system, files will be created on host...
 singularity shell
@@ -367,6 +371,8 @@ the def file can be found at `/.singularity`
 ### Building mutable images
 
 ```{bash}
+#| eval: false
+
 
 # create new image in folder 
 sudo singularity build --sandbox ubuntu/ library://ubuntu
@@ -388,7 +394,9 @@ $SINGULARITY_ROOTFS
 Ich möchte `singularity run` mit inputfiles nutzen, z.b. singularity run calling_container.sif --> der dann die rohdaten von irgendwo fetcht
 
 
-```{r}
+```{bash}
+#| eval: false
+
 alpine_min_r.sif 
 rDataFile.RData
 ```
