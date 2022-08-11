@@ -357,15 +357,53 @@ singularity build alpine_min_r.sif alpine_min_r_sandbox
 
 ### Files management
 
-
+We want to use containers to contain, read and write files in order to properly
+execute analysis modules. Creating files is straight-forward. Several
+directories on the host machine are mounted when running a container. The
+include the users’ home directory (i. e. `/home/YOUR_USER`) among others. These
+are documented
+[here](https://docs.sylabs.io/guides/latest/user-guide/bind_paths_and_mounts.html).
+Directory mounts can be enabled and disabled for each container. It could for
+example be useful to mount a directory containing data needed for a specific
+analysis module that is saved outside of the users’ home directory. In the first
+chunk, the working directory when running a container is printed to the console.
 
 ```{bash}
-# execute command from image. We will create a file in the local host directory that we can use later to learn how to handle files in SIFs
+# Show the directory the container is executed from. Files will simply be saved
+# here.
+singularity exec alpine_min_r.sif pwd
+```
+
+With these commands, we will write a R data object (`.RData`) to our host
+filesystem. This file is persistent and will exist after a container is closed.
+
+```{bash}
+# execute command from image. We will create a file in the local host directory
+# that we can use later to learn how to handle files in SIFs
 singularity exec alpine_min_r.sif R --slave -e "data(iris);save(iris,file=rDataFile.RData')"
+
+# check for the newly created file
+ls -hartl | grep -e RData
 ```
 
 
 
+
+IN addition to the standard mounts, additional directories can be mounted using the `--bind` or `--mount` flags
+
+"The --mount flag takes a mount specification in the format type=bind,src=<source>,dst=<dest>. Additional options can be specified, comma delimited."
+
+"To mount the same directory read-only in the container, add the ro option:
+
+$ singularity exec \
+    --mount type=bind,source=/data,dest=/mnt,ro \
+    my_container.sif touch /mnt/test
+touch: cannot touch '/mnt/test': Permission denied
+"
+ 
+ `--no-home` creates no home...
+
+--> Wie geht man damit um, dass nutzer auf bestimmte dateien zugriff bekommen und auf andere nicht. koennen die auf tmps selber sachen schreiben? wie werden die lese und schreibzugriffe geregelt?
 
 $SINGULARITY_ROOTFS
 
