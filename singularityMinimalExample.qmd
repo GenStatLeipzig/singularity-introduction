@@ -268,7 +268,7 @@ From: alpine:latest
     echo \"export NOW=\\\"\${NOW}\\\"\" >> $SINGULARITY_ENVIRONMENT
 
 %environment
-    AUTHOR=\"Carl\"
+    export AUTHOR=\"Carl\"
 
 %runscript
     echo \"Container creation date: \$NOW\"
@@ -355,6 +355,10 @@ ls -hartl
 singularity build alpine_min_r.sif alpine_min_r_sandbox
 ```
 
+### Environment variables TODO
+
+
+
 ### Files management
 
 We want to use containers to contain, read and write files in order to properly
@@ -386,26 +390,34 @@ singularity exec alpine_min_r.sif R --slave -e "data(iris);save(iris,file=rDataF
 ls -hartl | grep -e RData
 ```
 
+In addition to the standard mounted paths, additional directories can be mounted
+using the `--bind` or `--mount` flags. The `--mount` flag expects specifications
+in the format `type=bind,src=<source>,dst=<dest>`, with comma-delimited options.
+The `source` is the directory on the host machine (the machine running the
+container) and `dst` is the destination mount point on the container filesystem.
+With the `ro` option, directories can be mounted as read-only, which is
+especially useful for directories containing analysis data. With the following
+command, the directory `/home/$USER` (i. e. the current user's home directory)
+on the host will be mounted as read-only directory in the container. This is
+demonstrated by trying to create (`touch`) an empty file in the target
+directory. The system will refuse the operation.
+
+```{bash}
+singularity exec \
+    --mount type=bind,source=/home/$USER,dst=/home/$USER,ro \
+    my_container.sif touch /home/$USER/my_testfile
+```
+
+This can also be specified using the environment variable `$SINGULARITY_MOUNT`. Multiple mount points can be separated by newlines (`\\n`). The variable can be persistently set in the user's `.bashrc`. Other useful flags for that impact the default mounts are:
+
+*   `--no-home`: Mounts the current working directory instead of `$HOME` when running the container. When 
+*   `--containall` or `-C` binds a dummy home directory and not the host home. Files created in this directory are not persistent when leaving the container. 
 
 
 
-IN addition to the standard mounts, additional directories can be mounted using the `--bind` or `--mount` flags
-
-"The --mount flag takes a mount specification in the format type=bind,src=<source>,dst=<dest>. Additional options can be specified, comma delimited."
-
-"To mount the same directory read-only in the container, add the ro option:
-
-$ singularity exec \
-    --mount type=bind,source=/data,dest=/mnt,ro \
-    my_container.sif touch /mnt/test
-touch: cannot touch '/mnt/test': Permission denied
-"
- 
- `--no-home` creates no home...
 
 --> Wie geht man damit um, dass nutzer auf bestimmte dateien zugriff bekommen und auf andere nicht. koennen die auf tmps selber sachen schreiben? wie werden die lese und schreibzugriffe geregelt?
 
-$SINGULARITY_ROOTFS
 
 ### Using input files and handling output
 
@@ -456,7 +468,10 @@ singularity capabilities
 
 ### TODO
 
-*   was ist mit runnern?
+*   do I need use FUSE mounts?
+*   was ist mit runnern? oder besser gesagt, was sind runner genau?
+*   Wie soll Datenzugriff funktionieren (Max fragen): initialer Zugriff ueber login node, speichern ueber lustre file system?
+*   Einfach einen Ordner mit namen des nutzers im results folder der jeweiligen projekte erzeugen 
 *   Motivation: Idiosynchratien von R und HPC streamlinen, Plattformübergreifende Analysem, Reproduzierbarkeit
 *   Installation: Doku admin und user guide
 *   SLURM, Nextflow
