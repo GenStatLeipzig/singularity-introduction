@@ -152,6 +152,8 @@ singularity cache list
 singularity cache clean
 ```
 
+## Usage
+
 ### Pull a docker image from Docker Hub
 
 A library with R-specific docker images can be found at
@@ -265,7 +267,7 @@ apk update
 apk upgrade
 apk add R
 NOW=\`date\`
-echo \"export NOW=\\\"\${NOW}\\\"\" >> $SINGULARITY_ENVIRONMENT
+echo \"export NOW=\\\"\${NOW}\\\"\" >> \$SINGULARITY_ENVIRONMENT
 
 %environment
 export AUTHOR=\"Carl\"
@@ -389,7 +391,7 @@ program is installed as a non-root user and the application binary is created in
 a folder not in `$PATH`. Ways to specify non-default paths are documented
 [here](https://docs.sylabs.io/guides/3.10/user-guide/environment_and_metadata.html#manipulating-path).
 
-### Files management
+### Files management and mounting of directories
 
 We want to use containers to contain, read and write files in order to properly
 execute analysis modules. Creating files is straight-forward. Several
@@ -414,7 +416,7 @@ filesystem. This file is persistent and will exist after a container is closed.
 ```{bash}
 # execute command from image. We will create a file in the local host directory
 # that we can use later to learn how to handle files in SIFs
-singularity exec alpine_min_r.sif R --slave -e "data(iris);save(iris,file=rDataFile.RData')"
+singularity exec alpine_min_r.sif R --slave -e "data(iris);save(iris,file='rDataFile.RData')"
 
 # check for the newly created file
 ls -hartl | grep -e RData
@@ -479,7 +481,7 @@ load(\"/data/rDataFile.RData\")
 summary(iris)
 
 # Do some kind of computation on the data and return output
-print(paste0(\"The mean sepal length is:\", round(mean(iris$Sepal.Length), 2)))
+print(paste0(\"The mean sepal length is:\", round(mean(iris\$Sepal.Length), 2)))
 
 # Finish up and provide info about computing environment
 print(\"Finishing analysis....\")
@@ -496,7 +498,7 @@ apk update
 apk upgrade
 apk add R
 NOW=\`date\`
-echo \"export NOW=\\\"\${NOW}\\\"\" >> $SINGULARITY_ENVIRONMENT
+echo \"export NOW=\\\"\${NOW}\\\"\" >> \$SINGULARITY_ENVIRONMENT
 
 %files
 rDataFile.RData /data/
@@ -530,83 +532,212 @@ singularity build alpine_min_r.sif alpine_min_r.def
 singularity run -C alpine_min_r.def
 ```
 
-### The image filesystem
+## A first minimum example analysis module
+
+In this section, we will create a container using the features explored above.
+The container should contain a simple analysis script, read files from a mounted
+read-only directory and save results, including a log of the analysis output to
+a user-specific folder on the host filesystem.
+
+```{bash}
+# create the directories to mimic the (imaginated) host machine our
+# container will run on
+mkdir singularity_host/data
+mkdir singularity_host/results
+mkdir singularity_host/scripts
+
+# move the input data (which might be a huge file) to a central directory on
+# the host machine and not into the container
+mv rDataFile.RData singularity_host/data/Data_01.RData
+
+# this results in a clean host directory structure including folders for the 
+# data, the analysis scripts and the results
+tree singularity_host
+```
+
+We can use bash commands to prepare our system for this new container.
+Specifically, we must create a unique and writable result folder and create the
+environment variable specifying the mount point for the `data` and `results`
+folders.
+
+```{bash}
+# create the name for the result folder based on the username and some
+#randomness to avoid collisions
+RAND_PART=`head -c 500 /dev/urandom | tr -dc 'A-Z0-9' | head -c 5`
+FOLDER_NAME=${USER}_${RAND_PART}
+
+# make the FOLDER_NAME variable accessible for the shell 
+export FOLDER_NAME
+
+# since randomness is involved, save the results folder name in a file in the user's home
+echo $FOLDER_NAME > /home/$USER/.env
+
+# The folder will be the mount point for the user's results
+mkdir /home/$USER/TutorialContainers/singularity_host/results/$FOLDER_NAME
+
+# specify the mount points as environment variable for when running the container
+export SINGULARITY_BIND="singularity_host/data:/mnt/data:ro,singularity_host/results/'$FOLDER_NAME':/mnt/results"
+
+# this should work but doesn't
+# export SINGULARITY_MOUNT=$'type=bind,src=singularity_host/data,dst=/mnt/data,ro\ntype=bind,src=singularity_host/results/'$FOLDER_NAME',dst=/mnt/results'
+```
+
+**NOTE:** Setting the environment variable `$SINGULARITY_MOUNT` presents some
+problems. Multiple mounts should be separated by a newline `"\\n"`, but it still
+failed for this example. Therefore, the variable `$SINGULARITY_BIND` was used
+that demands a different syntax in the form `<source>:<destination>:<option>`
+and different mounts can be separated by a comma.
+
+When running this command as a script, it is important not to run the script
+using `./myscript.sh`, because this will start a new shell within our executing
+shell and the environment variables will not be set. Instead, using the
+dot-notation or `source` will execute the commands in the current shell. Now the
+container DEF and the analysis can be specified. In this DEF, we also install
+additional libraries in the container in the `%post%` section, namely the
+`data.table` package. Note that additional system libraries (`apk add zlib
+zlib-dev pkgconfig R-dev make openmp`) need to be installed in order for
+`data.table` to install successfully.
+
+```{bash}
+echo \
+"BootStrap: docker
+From: alpine:latest
+
+%post
+apk update
+apk upgrade
+apk add zlib zlib-dev pkgconfig R R-dev make openmp
+NOW=\`date\`
+echo \"export NOW=\\\"\${NOW}\\\"\" >> \$SINGULARITY_ENVIRONMENT
+
+# Install necessary libraries
+R --slave -e 'install.packages(\"data.table\", repos=\"https://cloud.r-project.org/\")'
+
+%files
+singularity_host/scripts/Analysis_01.R  /scripts/main.R
+
+%runscript
+echo \"Container creation date: \$NOW\"
+echo \"Container run date: \`date\`\"
+echo \"Container creator: \$USER\"
+Rscript --vanilla --verbose /scripts/main.R > /mnt/results/Analysis_01.Rout
+
+%labels
+Author: AG GenStat @ IMISE
+
+%help
+This is a minimal example container. It utilizes mounts and runs a small R script when executed." \
+> alpine_analysis_01.def
+```
+
+The analysis script (`Analysis_01.R` on the host, simply `main.R` in the
+container) should read the mounted file, do some computations and save some
+results that can be accessed once the container finished the analysis. Starting the scripts using `Rscript` is the successor of `R CMD BATCH` and also accepts common flags:
+
+* `--vanilla`: Combine --no-save, --no-restore, --no-site-file --no-init-file and --no-environ
+* `--verbose`: Print information on progress (can be piped into file)
+* `--slave`: Run as quietly as possible (when a subprocess and no output is required)
+
+```{bash}
+echo "\
+library(data.table)
+
+# This data is loaded from the mounted directory on the host machine
+load(\"/mnt/data/Data_01.RData\")
+
+# use the loaded library
+setDT(iris)
+
+# Create some output
+summary(iris)
+
+# create a summary table
+res <- iris[, .(mean_sepal_length = mean(Sepal.Length),
+                max_sepal_width = max(Sepal.Width),
+                min_petal_length = min(Petal.Length),
+                total_petal_width = sum(Petal.Width)
+                ), by = Species]
+
+# save the result file to the results folder
+fwrite(x = res,file = \"/mnt/results/Results_01.csv\", sep = \",\")
+
+# Finish up and provide info about computing environment
+print(\"Finishing analysis....\")
+sessionInfo()"\
+>   singularity_host/scripts/Analysis_01.R
+
+# check the structure of our host directory
+tree singularity_host
+```
+
+Now the DEF as well as the analysis are ready and the container can be built.
+
+```{bash}
+# create the image (needs to be run as root using `sudo`)
+singularity build alpine_analysis_01.sif alpine_analysis_01.def
+
+# run the image 
+singularity run alpine_analysis_01.sif
+
+# check whether output was produced
+tree sigularity_host
+
+# Two files were created, first a log of the script (a html report would be nicer)
+cat singularity_host/results/Analysis_01.Rout
+
+# The second file is a csv with the results from the analysis
+cat singularity_host/results/Results_01.csv
+```
+
+## Future additions
+
+### The image filesystem TODO
 
 * singularity shell
 * cd /.singularity.d
 * cd /singularity
-
-the def file can be found at `/.singularity`
-
-"This example works because hostfile.txt exists in the user’s home directory. By default SingularityCE bind mounts `/home/$USER`, `/tmp`, and `$PWD` into your container at runtime."
-
-### A first minimum example analysis pipeline
-
-*   a container with R and some packages
-*   tests for integrity of input data etc...
-*   an R script reading some files from some directory (how do i supply different inputs? in the def, in the run command, via mounting /data/data1, /data/data2 etc with identical substructure?)
-*   write results into folder of project using variable $USER + some gibberish (for identical name use-cases), e.g. `cfbeuchel_2j3443/resultfile.csv`
-*   files in image: analysis script
-*   mounted directory: results and input files (--> minimize mounts in filesystem)
-*   copied files: analysis scripts & maybe persistent inputs? 
-*   Running script via `Rscript --vanilla --verbose` https://stackoverflow.com/questions/14167178/passing-command-line-arguments-to-r-cmd-batch
-+ `--vanilla`: Combine --no-save, --no-restore, --no-site-file --no-init-file and --no-environ
-+ `--verbose`: Print information on progress (can be piped into file)
-+ `--slave`: Run as quietly as possible (when a subprocess and no output is required)
-+ i want a log file!
-+ input via `CommandArgs()`
-*   `R --slave -e "source()"` would also work
-*   creating a quarto doc with html reports is probably a good idea `quarto render ... --to html`
-*   `Rscript --verbose myScript.R  > myScript.Rout` minimal output file...
-
-
+* the def file can be found at `/.singularity`
+* "This example works because hostfile.txt exists in the user’s home directory. By default SingularityCE bind mounts `/home/$USER`, `/tmp`, and `$PWD` into your container at runtime."
 * Additionally, we can supply additional arguments to the  argument to run... (digits to round )
 + `args <- commandArgs(trailingOnly = TRUE); rnorm(n=as.numeric(args[1]), mean=as.numeric(args[2]))`
 + might be useful to pipe arguments from singularity run/exec to Rscript...
 
-
-
-### Use with worklfow DSL (Snakemake, Nextflow)
-
-### Use with Snakemake
+### Use with Snakemake TODO
 
 Installation
 
 * Install Miniconda in userspace, which is default (reduces python bloat)
-+ `update conda conda update -n base -c defaults conda`
-+ Install mamba: `conda install -n base -c conda-forge mamba`
+  + `update conda conda update -n base -c defaults conda`
+  + Install mamba: `conda install -n base -c conda-forge mamba`
 * Install Snakemake (base)
-+ `conda activate base` (Switch to environment?)
-+ `mamba create -c conda-forge -c bioconda -n snakemake snakemake` (install snakemakle)
-+ `conda activate snakemake` (reverse is `conda deactivate`)
+  + `conda activate base` (Switch to environment?)
+  + `mamba create -c conda-forge -c bioconda -n snakemake snakemake` (install snakemakle)
+  + `conda activate snakemake` (reverse is `conda deactivate`)
 * Install Snakemake (minimal)
-+ `conda activate base`
-+ `mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal`
+  + `conda activate base`
+  + `mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal`
 * Use mamba
-+ `mamba init`
-+ `mamba activate snakemake`
-+ `mamba deactivate`
+  + `mamba init`
+  + `mamba activate snakemake`
+  + `mamba deactivate`
 * Don't start (base) automatically: `conda config --set auto_activate_base false` (creates file `~/.condarc` containing `auto_activate_base: false`) --> just set this file manually
-+ more elegant way: `export CONDA_AUTO_ACTIVATE_BASE=false`
-
+  + more elegant way: `export CONDA_AUTO_ACTIVATE_BASE=false`
 * Snakemake has built-in compatibility with [Singularity](https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html): 
 * Introduction to environments in python [here](https://towardsdatascience.com/a-guide-to-conda-environments-bc6180fc533)
 
-### User capabilities
-
-```{bash}
-#| eval: false
-
-singularity capabilities
-
-```
-
-### Tests
+### Tests TODO
 
 * section `%test`
 
 ### TODO
 
+*   Rscript input via `CommandArgs()`
+*   `R --slave -e "source()"` would also work
+*   creating a quarto doc with html reports is probably a good idea `quarto render ... --to html`
+*   `Rscript --verbose myScript.R  > myScript.Rout` minimal output file...
+*   date tag
+*   restrictive umask!
+*   how to create/manage workspaces?
 *   do I need use FUSE mounts?
 *   was ist mit runnern? oder besser gesagt, was sind runner genau?
 *   Wie soll Datenzugriff funktionieren (Max fragen): initialer Zugriff ueber login node, speichern ueber lustre file system?
@@ -618,18 +749,12 @@ singularity capabilities
 *   OpenBLAS etc?
 *   welche R version
 *   wie können wir die containergröße gering halten?
-*   Download über Rocker
-*   eigene Defininition von .sif per .def
-*   was ist der container?
-*   wie baue ich einen container (base image, per .def file installation vornehmen)
 *   https://jsta.github.io/r-docker-tutorial/ 
 *   https://rviews.rstudio.com/2017/03/29/r-and-singularity/
 *   custom .def file https://github.com/nickjer/singularity-r
 *   https://njstem.wordpress.com/2018/08/02/r-script-seurat-with-a-singularity-container-using-slurm/
-*   Rocker Image overview: 
 *   Rocker Singularity Intro: https://www.rocker-project.org/use/singularity
 *   Singularity erlaubt unit test - Das brauchen wir! "singularity test"
-*   create a "main.R" in the WD and run with "singularity run"
 *   create image from .def with "sudo singularity create --size 4000 tensorflow.img && \ sudo singularity bootstrap tensorflow.img tensorflow.def"
 *   Testing: Unit, Integration, Documentation, Regression, 
 *   CI Pipeline: was wollen wir dabei haben?
