@@ -72,7 +72,12 @@ Singularity from source.
 
 ### Add local binary to secure_path
 
-When building singularity locally, the binary is found in the path `/usr/local/bin/`. To be able to build containers, they have to be run as root, but sometimes the `/usr/local/bin/` directory is not in `$PATH` for root, leading to a command not found error when running `sudo singularity`. Therefore it is necessary to append the directory to `secure_path` of the `/etc/sudoers` file. To do this, run the following command:
+When building singularity locally, the binary is found in the path
+`/usr/local/bin/`. To be able to build containers, they have to be run as root,
+but sometimes the `/usr/local/bin/` directory is not in `$PATH` for root,
+leading to a command not found error when running `sudo singularity`. Therefore
+it is necessary to append the directory to `secure_path` of the `/etc/sudoers`
+file. To do this, run the following command:
 
 ```{r}
 #| eval: false
@@ -81,7 +86,13 @@ When building singularity locally, the binary is found in the path `/usr/local/b
 sudo visudo
 ```
 
-Search for a line that specifies the `secure_path`. It might look like this: `Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"`. Sometimes it might be commented out with a `#`. Now add the directory containing the singularity binary by adding it with a prepended `:` to the end of the line and remove the `#` if present, so that it looks similar to this. (NOTE: the directories listed on different machines might be in a different order or contain different directories altogether).
+Search for a line that specifies the `secure_path`. It might look like this:
+`Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"`.
+Sometimes it might be commented out with a `#`. Now add the directory containing
+the singularity binary by adding it with a prepended `:` to the end of the line
+and remove the `#` if present, so that it looks similar to this. (NOTE: the
+directories listed on different machines might be in a different order or
+contain different directories altogether).
 
 ```{bash}
 #| eval: false
@@ -90,7 +101,8 @@ Search for a line that specifies the `secure_path`. It might look like this: `De
 Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin/"
 ```
 
-After saving this file, running `sudo singularity` should no longer produce a command not found error.
+After saving this file, running `sudo singularity` should no longer produce a
+command not found error.
 
 
 ### Autocompletion
@@ -148,7 +160,8 @@ cache confusing.
 # lists total number of containers in cache and the occupied space
 singularity cache list
 
-# deletes all files currently in the `.singularity/cache` folder, while retaining the directories.
+# deletes all files currently in the `.singularity/cache` folder, while 
+# retaining the directories.
 singularity cache clean
 ```
 
@@ -214,8 +227,11 @@ cat ../resources/r_devel_dockerfile
 ### Run Image
 
 Users can interact with containers in several ways: Run (`singularity run`) a
-pre-specified command (in the `%runscript` section of the definition file), execute (`singularity exec`) and start a shell from
-within the container (`singularity shell`). Using the `shell` command it can be seen that the content of the users' home directory (`/home/$USER`) can still be accessed when running the container. This is one of the mounted directories from the host machine. 
+pre-specified command (in the `%runscript` section of the definition file),
+execute (`singularity exec`) and start a shell from within the container
+(`singularity shell`). Using the `shell` command it can be seen that the content
+of the users' home directory (`/home/$USER`) can still be accessed when running
+the container. This is one of the mounted directories from the host machine.
 
 
 ```{bash}
@@ -227,7 +243,10 @@ singularity run r-devel_latest.sif
 # This command runs a user-specified command, in this case a call to R that generates 100 normally distributed numbers.
 singularity exec r-devel_latest.sif R --slave -e "rnorm(1e2)"
 
-# This command opens a shell n the container environment. Notice how the prompt of the shell changes to something like `Singularity>`, but `ls` still returns the contents of your host machine (i. e. /home/YOUR_USER/ ).  This can also be run as root or non-root
+# This command opens a shell n the container environment. 
+# Notice how the prompt of the shell changes to something like `Singularity>`,
+# but `ls` still returns the contents of your host machine 
+# (i. e. /home/YOUR_USER/ ). This can also be run as root or non-root
 singularity shell r-devel_latest.sif
 ```
 
@@ -238,7 +257,8 @@ file. This way, environment variables, libraries and files can be added to a
 base-container. Specifications of the singularity definition file can again be
 found in the [official
 documentation](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#definition-files).
-It consists of several sections that define the build-instructions. The main parts are the Header and the Body.
+It consists of several sections that define the build-instructions. The main
+parts are the Header and the Body.
 
 *   Header: Specify the registry/library and the base container to be used for building the image
 *   Body: Specify all installation instructions like libraries, environment variables, meta-data and files to be copied into the container etc.
@@ -253,7 +273,15 @@ The body contains several sections, each with specific tasks to be executed duri
 
 ### Our first DEF and SIF
 
-For an introduction, we can build our own `.sif`-image based on the light-weight docker image [Alpine](https://hub.docker.com/_/alpine). The header information about using alpine from docker hub can be found [here](https://docs.sylabs.io/guides/3.10/user-guide/appendix.html#build-docker-module). Then we will update the container library and install R using the alpine package manager `apk` and specify a runscript to start R when using `singularity run`. We will not set any environment variables and leave the field empty. The following chunk will create the `alpine_min_r.def` file in the current working directory.
+For an introduction, we can build our own `.sif`-image based on the light-weight
+docker image [Alpine](https://hub.docker.com/_/alpine). The header information
+about using alpine from docker hub can be found
+[here](https://docs.sylabs.io/guides/3.10/user-guide/appendix.html#build-docker-module).
+Then we will update the container library and install R using the alpine package
+manager `apk` and specify a runscript to start R when using `singularity run`.
+We will not set any environment variables and leave the field empty. The
+following chunk will create the `alpine_min_r.def` file in the current working
+directory.
 
 ```{bash}
 #| eval: false
@@ -305,7 +333,8 @@ We can now interact with with the newly-created container.
 
 ### Investigate Image
 
-Several commands can be used to inspect properties of a .sif file (singularity image file).
+Several commands can be used to inspect properties of a .sif file (singularity
+image file).
 
 ```{bash}
 #| eval: false
@@ -352,7 +381,8 @@ sudo singularity build --sandbox alpine_min_r_sandbox alpine_min_r.def
 cd alpine_min_r_sandbox
 ls -hartl
 
-# The folder acts as an image file and all singularity commands, e. g. shell, exec, and run will work without any need to modify commands.
+# The folder acts as an image file and all singularity commands, e. g. shell, 
+# exec, and run will work without any need to modify commands.
 
 # build the sandbox into a .sif
 singularity build alpine_min_r.sif alpine_min_r_sandbox
@@ -687,20 +717,81 @@ cat singularity_host/results/Analysis_01.Rout
 cat singularity_host/results/Results_01.csv
 ```
 
+## Configuration
+
+###  Singularity application
+
+Configuration of singularity itself is documented in the [administration guide](https://docs.sylabs.io/guides/latest/admin-guide/configfiles.html).
+
+* config /usr/local/etc/singularity/singularity.conf
+
+
+
+
+
+### Container resource management
+
+Even though schedulers in a HPC environment limit a processes computing resources, it might sometimes be useful to do this on the individual container level. The process is documented [here](https://docs.sylabs.io/guides/latest/user-guide/cgroups.html).
+
+### MPI applications & GPU support
+
+Message Passing Interface (MPI) describes a standard for distributed memory
+parallelization, i. e. allowing for parallelization of computations on a HPC.
+The open-source implementation is called [Open MPI](https://www.open-mpi.org/).
+While on a single node (e. g. a single computer), parallelization does not
+require the use of MPI, a HPC consists of several servers (i. e. computers) that
+are connected to form the compute environment. Each of these servers are called
+a node. Each node has one or multiple CPUs with multiple (physical) cores and
+mostly two (virtual) threads per core. Orchestrating parallel computations
+across nodes requires additional effort. The process of coordinating these
+computations across nodes is handled by MPI. An introduction to the complexities
+of high-performance computing can be found
+[here](https://hpc.llnl.gov/documentation/tutorials/introduction-parallel-computing-tutorial).
+
+In the Singularity context, the aim is to allow containers to employ multiple threads and cores for started subprocesses. Documentation is available [here](https://docs.sylabs.io/guides/latest/user-guide/mpi.html). Two models are available to instantiate MPI code with singularity containers:
+
+* *Host MPI/Hybrid Model*: Depends on the host instance of MPI and works with resource managers like SLURM. Depends on compatible versions of MPI in the container and the host, therefore it is advisable to build a separate MPI container
+* *Bind Model*:
+
+
+
+
+Singularity container also support computations running on GPUs. Details are documented [here](https://docs.sylabs.io/guides/latest/user-guide/gpu.html).
+
+
 ## Future additions
+
+### Use with schedulers (SLURM)
+
+### Encryption TODO
 
 ### Security TODO
 
 * what can a user access and how do we enforce this (--> URZ responsibility)
 * capabilities grant users root access on the systems (use fakeroot instead)
-* 
+  + documented in admin docs
+* The `--add-caps` and `--drop-caps` options will accept the `all` keyword. Of course appropriate caution should be exercised when using this keyword.
+* `--keep-privs`
+* encrypted containers?
+* Can we sign containers and check for signed containers when running them?
 
+Additionally, containers can be encrypted using a pass phrase or an RSA key. Details are documented [here](https://docs.sylabs.io/guides/latest/user-guide/encryption.html). This makes containers only accessible to users with the correct passphrase or private key. 
 
-### Singularity Plugis TODO
+### Singularity Plugins TODO
 
 https://docs.sylabs.io/guides/latest/user-guide/plugins.html
 
 ### The image filesystem TODO
+
+### Caching and temporary data TODO
+
+### Tests TODO
+
+* section `%test`
+
+### Benchmarking TODO
+
+### Read The Docs TODO
 
 * singularity shell
 * cd /.singularity.d
@@ -733,10 +824,6 @@ Installation
   + more elegant way: `export CONDA_AUTO_ACTIVATE_BASE=false`
 * Snakemake has built-in compatibility with [Singularity](https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html): 
 * Introduction to environments in python [here](https://towardsdatascience.com/a-guide-to-conda-environments-bc6180fc533)
-
-### Tests TODO
-
-* section `%test`
 
 ### TODO
 
