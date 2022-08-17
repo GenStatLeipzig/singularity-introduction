@@ -359,8 +359,6 @@ singularity build alpine_min_r.sif alpine_min_r_sandbox
 ```
 
 ### Environment variables
-Haste die ganze Woche Home Office? Viel passiert da ja sicher eh nicht am ersten Tag nach Festival oder
-2min
 
 Setting and manipulating environment variables in a container is a convenient
 feature for creating settings. They can be set in the DEF, as well as when
@@ -454,7 +452,7 @@ We want to add analysis scripts as R-scripts or snakemake files to containers to
 use them as isolated analysis modules. Therefore, in addition to programs and
 libraries necessary for the analysis, the analysis scripts need to be saved in
 the container. Files to be added to an image can be specified in the definition
-file in the `$files` section. The details are documented
+file in the `%files` section. The details are documented
 [here](https://docs.sylabs.io/guides/latest/user-guide/definition_files.html#files).
 For complicated analyses, the input needs to be highly standardized and tested
 and output needs to be saved in a directory that is accessible for the user but
@@ -542,7 +540,7 @@ a user-specific folder on the host filesystem.
 ```{bash}
 # create the directories to mimic the (imaginated) host machine our
 # container will run on
-mkdir singularity_host/data
+mkdir -p singularity_host/data
 mkdir singularity_host/results
 mkdir singularity_host/scripts
 
@@ -690,6 +688,17 @@ cat singularity_host/results/Results_01.csv
 ```
 
 ## Future additions
+
+### Security TODO
+
+* what can a user access and how do we enforce this (--> URZ responsibility)
+* capabilities grant users root access on the systems (use fakeroot instead)
+* 
+
+
+### Singularity Plugis TODO
+
+https://docs.sylabs.io/guides/latest/user-guide/plugins.html
 
 ### The image filesystem TODO
 
