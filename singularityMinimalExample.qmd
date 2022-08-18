@@ -70,6 +70,12 @@ Guide](https://docs.sylabs.io/guides/3.10/admin-guide/admin_quickstart.html).
 Following the steps listed under `Quick Start`, it is relatively simple to build
 Singularity from source.
 
+The command `singularity buildcfg` shows the build configuration and display all
+paths set during the installation. The build can also be tested from the
+`builddir` of the singularity directory. The possible tests are documented
+[here](https://docs.sylabs.io/guides/latest/admin-guide/installation.html#test-suite).
+
+
 ### Add local binary to secure_path
 
 When building singularity locally, the binary is found in the path
@@ -174,7 +180,7 @@ A library with R-specific docker images can be found at
 introduction to [Singularity](https://www.rocker-project.org/use/singularity).
 The following command pulls and converts an
 [image](https://www.rocker-project.org/images/base/r-devel) from the docker hub,
-a repository for pre-build docker images (`SIF` = Singularity Image File) from
+a repository for pre-build docker images (`SIF` = Singularity Image Format) from
 Rocker. Specifications of each image can be found on the respective websites.
 The advantage of this is to be able do create a singularity container without
 specifying a .def file. The large amount of pre-configured images allows users
@@ -263,7 +269,7 @@ parts are the Header and the Body.
 *   Header: Specify the registry/library and the base container to be used for building the image
 *   Body: Specify all installation instructions like libraries, environment variables, meta-data and files to be copied into the container etc.
 
-The body contains several sections, each with specific tasks to be executed during the build process. A description of each section can be found [here](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#sections). Our first test-SIF will contain the following sections.
+The body contains several sections, each with specific tasks to be executed during the build process. A description of each section can be found [here](https://docs.sylabs.io/guides/3.10/user-guide/definition_files.html#sections). Our first test-SIF file will contain the following sections.
 
 *   `%post`: The section contains instructions to be executed at build time. It is used to install software to be used by the container. It can also be used to set environment variables that are set at build time. In this example, it is the date and time when the build command is run. The command is saved in the file `/.singularity.d/env/91-environment.sh` and sourced when starting the container. 
 *   `%environment`: Define environment variables to be set at runtime. In this example, it is the date and time when the container is run. 
@@ -318,7 +324,7 @@ This is a first test container. It starts a R session when executed." \
 Saving a file containing this chunk under e. g. `alpine_min_r.def`, it can be
 now be build using by providing the name of the SIF file and the definition file
 using `singularity build IMAGE_NAME.sif alpine_min_r.def`. This will create the
-SIF in the current directory.
+SIF file in the current directory.
 
 
 ```{bash}
@@ -660,7 +666,9 @@ This is a minimal example container. It utilizes mounts and runs a small R scrip
 
 The analysis script (`Analysis_01.R` on the host, simply `main.R` in the
 container) should read the mounted file, do some computations and save some
-results that can be accessed once the container finished the analysis. Starting the scripts using `Rscript` is the successor of `R CMD BATCH` and also accepts common flags:
+results that can be accessed once the container finished the analysis. Starting
+the scripts using `Rscript` is the successor of `R CMD BATCH` and also accepts
+common flags:
 
 * `--vanilla`: Combine --no-save, --no-restore, --no-site-file --no-init-file and --no-environ
 * `--verbose`: Print information on progress (can be piped into file)
@@ -719,19 +727,25 @@ cat singularity_host/results/Results_01.csv
 
 ## Configuration
 
-###  Singularity application
+###  Application base configuration
 
-Configuration of singularity itself is documented in the [administration guide](https://docs.sylabs.io/guides/latest/admin-guide/configfiles.html).
-
-* config /usr/local/etc/singularity/singularity.conf
-
-
-
-
+Configuration of Singularity itself is documented in the [administration
+guide](https://docs.sylabs.io/guides/latest/admin-guide/configfiles.html). The
+configuration is carried out on the host and is important for the general
+behaviour of the program. When installing Singularity from source, the main
+configuration is root-owned and located at
+`/usr/local/etc/singularity/singularity.conf`. The options are documented
+[here](https://docs.sylabs.io/guides/latest/admin-guide/configfiles.html#singularity-conf).
+Important options include the ability to set standard mount points, like `/tmp`
+and `/proc` for running containers. Options can be chosen to be maximally
+restrictive without creating problems during container runtime.
 
 ### Container resource management
 
-Even though schedulers in a HPC environment limit a processes computing resources, it might sometimes be useful to do this on the individual container level. The process is documented [here](https://docs.sylabs.io/guides/latest/user-guide/cgroups.html).
+Even though schedulers in a HPC environment limit a processes computing
+resources, it might sometimes be useful to do this on the individual container
+level. The process is documented
+[here](https://docs.sylabs.io/guides/latest/user-guide/cgroups.html).
 
 ### MPI applications & GPU support
 
@@ -748,40 +762,63 @@ computations across nodes is handled by MPI. An introduction to the complexities
 of high-performance computing can be found
 [here](https://hpc.llnl.gov/documentation/tutorials/introduction-parallel-computing-tutorial).
 
-In the Singularity context, the aim is to allow containers to employ multiple threads and cores for started subprocesses. Documentation is available [here](https://docs.sylabs.io/guides/latest/user-guide/mpi.html). Two models are available to instantiate MPI code with singularity containers:
+In the Singularity context, the aim is to allow containers to employ multiple
+threads and cores for started subprocesses. Given MPI support and configuration,
+containers can be run using `mpirun singularity run` instead of `singularity
+run`.  Documentation is available
+[here](https://docs.sylabs.io/guides/latest/user-guide/mpi.html). Two models are
+available to instantiate MPI code with singularity containers:
 
-* *Host MPI/Hybrid Model*: Depends on the host instance of MPI and works with resource managers like SLURM. Depends on compatible versions of MPI in the container and the host, therefore it is advisable to build a separate MPI container
-* *Bind Model*:
+* *Host MPI/Hybrid Model*: Depends on the host instance of MPI, the MPI instance in the container and works with resource managers like SLURM. Depends on compatible versions of MPI in the container and the host, therefore it is advisable to build a separate MPI container
+* *Bind Model*: Depends only on the host MPI installation and the container accesses the executable file through a directory mount/bind. This mode also works with resource managers.  
 
-
-
-
-Singularity container also support computations running on GPUs. Details are documented [here](https://docs.sylabs.io/guides/latest/user-guide/gpu.html).
-
-
-## Future additions
+Singularity container also support computations running on GPUs. Details are
+documented [here](https://docs.sylabs.io/guides/latest/user-guide/gpu.html).
 
 ### Use with schedulers (SLURM)
 
-### Encryption TODO
+Singularity integrates seamlessly with schedulers like SLURM. Documentation
+about this process can be found  in the SLURM documentation
+[here](https://slurm.schedmd.com/quickstart.html).
 
-### Security TODO
+### Security
 
-* what can a user access and how do we enforce this (--> URZ responsibility)
-* capabilities grant users root access on the systems (use fakeroot instead)
-  + documented in admin docs
-* The `--add-caps` and `--drop-caps` options will accept the `all` keyword. Of course appropriate caution should be exercised when using this keyword.
-* `--keep-privs`
-* encrypted containers?
-* Can we sign containers and check for signed containers when running them?
+It is important to restrict users as much as possible when operating on a shared
+environment as a HPC. Luckily, most of these restrictions (e. g. default umask)
+are handled by the host itself by setting user and group rights as well as
+managing file permissions. Singularity is designed to run using the same
+permissions as the user executing the container.
 
-Additionally, containers can be encrypted using a pass phrase or an RSA key. Details are documented [here](https://docs.sylabs.io/guides/latest/user-guide/encryption.html). This makes containers only accessible to users with the correct passphrase or private key. 
+Another important point is the trust in the container itself. Singularity
+supports cryptographic signatures and enforcement of valid signatures on the
+containers to be executed on the host. Containers can be signed at during
+building and signatures checked before running by configuring an execution
+control list (ECL). Details are documented
+[here](https://docs.sylabs.io/guides/latest/user-guide/signNverify.html).
+
+Additionally, containers can be encrypted using a pass phrase or an RSA key.
+Details are documented
+[here](https://docs.sylabs.io/guides/latest/user-guide/encryption.html). This
+makes containers only accessible to users with the correct pass phrase or private
+key.
+
+## Future additions
+
+### Report generation
+
+* Instead of simply piping the output of the R-session to a text file, Reports can be generated...
+* Implementation? Quarto, Snakemake...?
+* creating a quarto doc with html reports is probably a good idea `quarto render ... --to html`
+  + in seperate container?
+
+
+### Encryption
+
+* Containers can be encrypted... what for? Do we need this?
 
 ### Singularity Plugins TODO
 
 https://docs.sylabs.io/guides/latest/user-guide/plugins.html
-
-### The image filesystem TODO
 
 ### Caching and temporary data TODO
 
@@ -793,13 +830,13 @@ https://docs.sylabs.io/guides/latest/user-guide/plugins.html
 
 ### Read The Docs TODO
 
+### The image filesystem TODO
+
 * singularity shell
 * cd /.singularity.d
 * cd /singularity
 * the def file can be found at `/.singularity`
 * "This example works because hostfile.txt exists in the user’s home directory. By default SingularityCE bind mounts `/home/$USER`, `/tmp`, and `$PWD` into your container at runtime."
-* Additionally, we can supply additional arguments to the  argument to run... (digits to round )
-+ `args <- commandArgs(trailingOnly = TRUE); rnorm(n=as.numeric(args[1]), mean=as.numeric(args[2]))`
 + might be useful to pipe arguments from singularity run/exec to Rscript...
 
 ### Use with Snakemake TODO
@@ -829,28 +866,18 @@ Installation
 
 *   Rscript input via `CommandArgs()`
 *   `R --slave -e "source()"` would also work
-*   creating a quarto doc with html reports is probably a good idea `quarto render ... --to html`
-*   `Rscript --verbose myScript.R  > myScript.Rout` minimal output file...
+* Additionally, we can supply additional arguments to the  argument to run... 
++ `args <- commandArgs(trailingOnly = TRUE); rnorm(n=as.numeric(args[1]), mean=as.numeric(args[2]))`
 *   date tag
-*   restrictive umask!
 *   how to create/manage workspaces?
 *   do I need use FUSE mounts?
 *   was ist mit runnern? oder besser gesagt, was sind runner genau?
-*   Wie soll Datenzugriff funktionieren (Max fragen): initialer Zugriff ueber login node, speichern ueber lustre file system?
-*   Einfach einen Ordner mit namen des nutzers im results folder der jeweiligen projekte erzeugen 
-*   Motivation: Idiosynchratien von R und HPC streamlinen, Plattformübergreifende Analysem, Reproduzierbarkeit
-*   Installation: Doku admin und user guide
-*   SLURM, Nextflow
-*   Rocker als Base-R container
-*   OpenBLAS etc?
-*   welche R version
-*   wie können wir die containergröße gering halten?
+*   'lustre' filesystem?
 *   https://jsta.github.io/r-docker-tutorial/ 
 *   https://rviews.rstudio.com/2017/03/29/r-and-singularity/
 *   custom .def file https://github.com/nickjer/singularity-r
 *   https://njstem.wordpress.com/2018/08/02/r-script-seurat-with-a-singularity-container-using-slurm/
 *   Rocker Singularity Intro: https://www.rocker-project.org/use/singularity
 *   Singularity erlaubt unit test - Das brauchen wir! "singularity test"
-*   create image from .def with "sudo singularity create --size 4000 tensorflow.img && \ sudo singularity bootstrap tensorflow.img tensorflow.def"
 *   Testing: Unit, Integration, Documentation, Regression, 
 *   CI Pipeline: was wollen wir dabei haben?
