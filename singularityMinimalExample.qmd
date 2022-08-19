@@ -802,6 +802,82 @@ Details are documented
 makes containers only accessible to users with the correct pass phrase or private
 key.
 
+## A more complex workflow
+
+### Snakemake container TODO
+
+In order to use Snakemake in a container to structure an analysis workflow, it needs to be installed to the analysis container. Snakemake depends on the `Python` toolchain and a package manager like `Conda`. It is desirable to keep the base container as small as possible, therefore a minimal implementation of `Conda` such as `Miniconda` can be installed. Since alpine Linux misses `glibc` and the `Miniconda` installation fails as a result, a small debian-based container can be used as a basis for this build instead. 
+
+
+```{bash}
+
+BootStrap: docker
+From: bitnami:minideb
+
+%post
+
+# Update system and install libraries
+apk update
+apk upgrade
+apk add --no-cache zlib zlib-dev pkgconfig R R-dev make openmp bash wget
+
+# Install miniconda
+
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda 
+rm Miniconda3-latest-Linux-x86_64.sh 
+conda create -c conda-forge -n snakemake bioconda::snakemake bioconda::snakemake-minimal --only-deps 
+conda clean --all -y 
+source activate snakemake 
+which python 
+echo "source activate snakemake" > ~/.bashrc
+
+
+%environment
+LANG='C.UTF-8' 
+LC_ALL='C.UTF-8'
+PATH='/opt/conda/bin:$PATH'
+
+%files
+
+%runscript
+
+%labels
+Author: AG GenStat @ IMISE
+
+%help
+This is a minimal example container for installing Snakemake.
+
+
+
+
+```
+
+
+* wie gross ist das image, was steht im def file
+* dockerfile: https://github.com/snakemake/snakemake/blob/main/Dockerfile
+
+
+* Install Miniconda in userspace, which is default (reduces python bloat)
+  + `update conda conda update -n base -c defaults conda`
+  + Install mamba: `conda install -n base -c conda-forge mamba`
+* Install Snakemake (base)
+  + `conda activate base` (Switch to environment?)
+  + `mamba create -c conda-forge -c bioconda -n snakemake snakemake` (install snakemakle)
+  + `conda activate snakemake` (reverse is `conda deactivate`)
+* Install Snakemake (minimal)
+  + `conda activate base`
+  + `mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal`
+* Use mamba
+  + `mamba init`
+  + `mamba activate snakemake`
+  + `mamba deactivate`
+* Don't start (base) automatically: `conda config --set auto_activate_base false` (creates file `~/.condarc` containing `auto_activate_base: false`) --> just set this file manually
+  + more elegant way: `export CONDA_AUTO_ACTIVATE_BASE=false`
+* Snakemake has built-in compatibility with [Singularity](https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html): 
+* Introduction to environments in python [here](https://towardsdatascience.com/a-guide-to-conda-environments-bc6180fc533)
+
+
 ## Future additions
 
 ### Report generation
@@ -838,29 +914,6 @@ https://docs.sylabs.io/guides/latest/user-guide/plugins.html
 * the def file can be found at `/.singularity`
 * "This example works because hostfile.txt exists in the user’s home directory. By default SingularityCE bind mounts `/home/$USER`, `/tmp`, and `$PWD` into your container at runtime."
 + might be useful to pipe arguments from singularity run/exec to Rscript...
-
-### Use with Snakemake TODO
-
-Installation
-
-* Install Miniconda in userspace, which is default (reduces python bloat)
-  + `update conda conda update -n base -c defaults conda`
-  + Install mamba: `conda install -n base -c conda-forge mamba`
-* Install Snakemake (base)
-  + `conda activate base` (Switch to environment?)
-  + `mamba create -c conda-forge -c bioconda -n snakemake snakemake` (install snakemakle)
-  + `conda activate snakemake` (reverse is `conda deactivate`)
-* Install Snakemake (minimal)
-  + `conda activate base`
-  + `mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal`
-* Use mamba
-  + `mamba init`
-  + `mamba activate snakemake`
-  + `mamba deactivate`
-* Don't start (base) automatically: `conda config --set auto_activate_base false` (creates file `~/.condarc` containing `auto_activate_base: false`) --> just set this file manually
-  + more elegant way: `export CONDA_AUTO_ACTIVATE_BASE=false`
-* Snakemake has built-in compatibility with [Singularity](https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html): 
-* Introduction to environments in python [here](https://towardsdatascience.com/a-guide-to-conda-environments-bc6180fc533)
 
 ### TODO
 
