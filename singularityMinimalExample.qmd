@@ -419,6 +419,10 @@ singularity exec alpine_min_r.sif env | grep ^SINGULARITY
 This also lists `SINGULARITY_ENVIRONMENT`, specifying the variables set in the
 `%post` section of the DIF.
 
+**Important**: Environment variables set in the `%environment` are not set
+during build time. Variables necessary during building an image need to be set
+in the `%post` section of the DEF.
+
 A specific feature is the ability to manipulate `$PATH`, the variable specifying
 where the system looks for executable applications. This is important when a
 program is installed as a non-root user and the application binary is created in
@@ -773,7 +777,7 @@ available to instantiate MPI code with singularity containers:
 * *Bind Model*: Depends only on the host MPI installation and the container accesses the executable file through a directory mount/bind. This mode also works with resource managers.  
 
 Singularity container also support computations running on GPUs. Details are
-documented [here](https://docs.sylabs.io/guides/latest/user-guide/gpu.html).
+documented [here](https://docs.sylabs.io/guides/latest/user-guide/gpu.html). Another introduction of the joint use of Singularity and MPI can be found [here](https://epcced.github.io/2021-07-29_Singularity_Online/08-singularity-mpi/index.html).
 
 ### Use with schedulers (SLURM)
 
@@ -802,81 +806,101 @@ Details are documented
 makes containers only accessible to users with the correct pass phrase or private
 key.
 
+### TODO How to set container user with less priviliges
+
 ## A more complex workflow
 
-### Snakemake container TODO
+### Snakemake container
 
-In order to use Snakemake in a container to structure an analysis workflow, it needs to be installed to the analysis container. Snakemake depends on the `Python` toolchain and a package manager like `Conda`. It is desirable to keep the base container as small as possible, therefore a minimal implementation of `Conda` such as `Miniconda` can be installed. Since alpine Linux misses `glibc` and the `Miniconda` installation fails as a result, a small debian-based container can be used as a basis for this build instead. 
+In order to use Snakemake in a container to structure an analysis workflow, it
+needs to be installed to the analysis container. Snakemake depends on the
+`Python` toolchain and a package manager like `Conda`. It is desirable to keep
+the base container as small as possible, therefore a minimal implementation of
+`Conda` such as `Miniconda` can be installed. Since alpine Linux misses `glibc`
+and the `Miniconda` installation fails as a result, a small Debian-based
+container can be used as a basis for this build instead. Examples of dockerfiles
+installing Snakemake were found
+[here](https://github.com/snakemake/snakemake/blob/main/Dockerfile) and
+[here](https://github.com/datarevenue-berlin/alpine-miniconda/blob/master/Dockerfile).
+A workflow should be organized per [this
+template](https://github.com/snakemake-workflows/snakemake-workflow-template).
 
 
 ```{bash}
-
 BootStrap: docker
-From: bitnami:minideb
+From: bitnami/minideb:latest
+
+%environment
+#Set variables for runtime
+export CONDA_DIR="/opt/conda"
+export PATH="$CONDA_DIR/bin:${PATH}"
+export PATH="$CONDA_DIR/envs/snakemake/bin:${PATH}"
 
 %post
 
-# Update system and install libraries
-apk update
-apk upgrade
-apk add --no-cache zlib zlib-dev pkgconfig R R-dev make openmp bash wget
+# set variables for buildtime
+export CONDA_DIR="/opt/conda"
+export PATH="$CONDA_DIR/bin:${PATH}"
+export PATH="$CONDA_DIR/envs/snakemake/bin:${PATH}"
 
-# Install miniconda
+# required system libraries
+install_packages bzip2 wget ca-certificates
 
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda 
-rm Miniconda3-latest-Linux-x86_64.sh 
-conda create -c conda-forge -n snakemake bioconda::snakemake bioconda::snakemake-minimal --only-deps 
-conda clean --all -y 
-source activate snakemake 
-which python 
-echo "source activate snakemake" > ~/.bashrc
+# Install Miniconda
+cd /tmp && \
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
+rm Miniconda3-latest-Linux-x86_64.sh
 
-
-%environment
-LANG='C.UTF-8' 
-LC_ALL='C.UTF-8'
-PATH='/opt/conda/bin:$PATH'
-
-%files
-
-%runscript
+# Install Snakemake
+conda create -c conda-forge -n snakemake bioconda::snakemake bioconda::snakemake-minimal --only-deps && \
+conda clean --all -y
 
 %labels
 Author: AG GenStat @ IMISE
 
 %help
-This is a minimal example container for installing Snakemake.
+This is a minimal example container with snakemake. It utilizes mounts and runs a small R script when executed.
+```
 
+The resulting image is about 281MB is size (check with `du -h debian-snakemake.sif`). The image still has some issues with launching the snakemake environment, but this serves as an example of how to install Snakemake in a singularity container. 
 
+### Snakemake host installation
 
+Conversely to installing Snakemake in each container, it can be installed on the host machine
 
+```{bash}
+# Download the Miniconda installer, run it and delete it afterwards
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+bash miniconda.sh
+rm miniconda.sh
+
+# Update conda installation
+update conda conda update -n base -c defaults conda
+
+# Install mamba, another package manager in the base environment
+conda install -n base -c conda-forge mamba
+
+# Install Snakemake in a separate environment
+conda activate base  # Switch to environment base
+mamba create -c conda-forge -c bioconda -n snakemake snakemake
+
+# Switch to environment `snakemake` to use snakemake
+conda activate snakemake # deactivate with `conda deactivate`
+
+# Optional: Use mamba instead of conda to access the environment
+mamba init
+mamba activate snakemake # deactivate with `mamba deactivate`
+
+# In Order note to activate the base environment when launching conda
+conda config --set auto_activate_base false
+
+# Manual configuration of the above
+echo "export CONDA_AUTO_ACTIVATE_BASE=false" >> ~/.bashrc
 ```
 
 
-* wie gross ist das image, was steht im def file
-* dockerfile: https://github.com/snakemake/snakemake/blob/main/Dockerfile
-
-
-* Install Miniconda in userspace, which is default (reduces python bloat)
-  + `update conda conda update -n base -c defaults conda`
-  + Install mamba: `conda install -n base -c conda-forge mamba`
-* Install Snakemake (base)
-  + `conda activate base` (Switch to environment?)
-  + `mamba create -c conda-forge -c bioconda -n snakemake snakemake` (install snakemakle)
-  + `conda activate snakemake` (reverse is `conda deactivate`)
-* Install Snakemake (minimal)
-  + `conda activate base`
-  + `mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal`
-* Use mamba
-  + `mamba init`
-  + `mamba activate snakemake`
-  + `mamba deactivate`
-* Don't start (base) automatically: `conda config --set auto_activate_base false` (creates file `~/.condarc` containing `auto_activate_base: false`) --> just set this file manually
-  + more elegant way: `export CONDA_AUTO_ACTIVATE_BASE=false`
 * Snakemake has built-in compatibility with [Singularity](https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html): 
-* Introduction to environments in python [here](https://towardsdatascience.com/a-guide-to-conda-environments-bc6180fc533)
-
 
 ## Future additions
 
@@ -885,8 +909,7 @@ This is a minimal example container for installing Snakemake.
 * Instead of simply piping the output of the R-session to a text file, Reports can be generated...
 * Implementation? Quarto, Snakemake...?
 * creating a quarto doc with html reports is probably a good idea `quarto render ... --to html`
-  + in seperate container?
-
+  + in separate container?
 
 ### Encryption
 
@@ -914,23 +937,3 @@ https://docs.sylabs.io/guides/latest/user-guide/plugins.html
 * the def file can be found at `/.singularity`
 * "This example works because hostfile.txt exists in the user’s home directory. By default SingularityCE bind mounts `/home/$USER`, `/tmp`, and `$PWD` into your container at runtime."
 + might be useful to pipe arguments from singularity run/exec to Rscript...
-
-### TODO
-
-*   Rscript input via `CommandArgs()`
-*   `R --slave -e "source()"` would also work
-* Additionally, we can supply additional arguments to the  argument to run... 
-+ `args <- commandArgs(trailingOnly = TRUE); rnorm(n=as.numeric(args[1]), mean=as.numeric(args[2]))`
-*   date tag
-*   how to create/manage workspaces?
-*   do I need use FUSE mounts?
-*   was ist mit runnern? oder besser gesagt, was sind runner genau?
-*   'lustre' filesystem?
-*   https://jsta.github.io/r-docker-tutorial/ 
-*   https://rviews.rstudio.com/2017/03/29/r-and-singularity/
-*   custom .def file https://github.com/nickjer/singularity-r
-*   https://njstem.wordpress.com/2018/08/02/r-script-seurat-with-a-singularity-container-using-slurm/
-*   Rocker Singularity Intro: https://www.rocker-project.org/use/singularity
-*   Singularity erlaubt unit test - Das brauchen wir! "singularity test"
-*   Testing: Unit, Integration, Documentation, Regression, 
-*   CI Pipeline: was wollen wir dabei haben?
