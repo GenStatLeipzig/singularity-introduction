@@ -825,42 +825,53 @@ installing Snakemake were found
 A workflow should be organized per [this
 template](https://github.com/snakemake-workflows/snakemake-workflow-template).
 
+### TODO: Does this correctly install in the environments? --> copy revised version & check ENVs
+
 
 ```{bash}
 BootStrap: docker
 From: bitnami/minideb:latest
 
 %environment
-#Set variables for runtime
-export CONDA_DIR="/opt/conda"
-export PATH="$CONDA_DIR/bin:${PATH}"
-export PATH="$CONDA_DIR/envs/snakemake/bin:${PATH}"
+# Set variables for runtime
+export PATH="/opt/conda/bin:/opt/conda/envs/snakemake/bin:$PATH"
 
 %post
 
-# set variables for buildtime
+# Set variables for buildtime
 export CONDA_DIR="/opt/conda"
 export PATH="$CONDA_DIR/bin:${PATH}"
 export PATH="$CONDA_DIR/envs/snakemake/bin:${PATH}"
+export MINICONDA_REPO="https://repo.anaconda.com/miniconda/"
+export MINICONDA_INSTALLER="Miniconda3-latest-Linux-x86_64.sh"
 
-# required system libraries
+# Required system libraries
 install_packages bzip2 wget ca-certificates
 
-# Install Miniconda
-cd /tmp && \
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
-rm Miniconda3-latest-Linux-x86_64.sh
+# Install Miniconda from web source
+cd /tmp & \
+wget $MINICONDA_REPO$MINICONDA_INSTALLER && \
+bash $MINICONDA_INSTALLER  -b -p /opt/conda && \
+rm $MINICONDA_INSTALLER  
 
-# Install Snakemake
-conda create -c conda-forge -n snakemake bioconda::snakemake bioconda::snakemake-minimal --only-deps && \
-conda clean --all -y
+# Install Mamba and create 'base' & 'snakemake' environment
+conda install -n base -c conda-forge mamba && \
+. $CONDA_DIR/bin/activate base  && \ # 'source' doesnt work, use '.' instead
+mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal && \
+mamba clean -a -y && \
+. $CONDA_DIR/bin/activate snakemake
+
+%files
+# Not yet
+
+%runscript
+# Not yet
 
 %labels
 Author: AG GenStat @ IMISE
 
 %help
-This is a minimal example container with snakemake. It utilizes mounts and runs a small R script when executed.
+This is a minimal example container with snakemake.
 ```
 
 The resulting image is about 281MB is size (check with `du -h debian-snakemake.sif`). The image still has some issues with launching the snakemake environment, but this serves as an example of how to install Snakemake in a singularity container. 
