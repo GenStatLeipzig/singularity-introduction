@@ -1178,7 +1178,9 @@ This is a minimal example container with snakemake. It utilizes mounts and runs 
 > debian_calling.def
 ```
 
-The directory mounts need to be specified as environment variable. The directory containing the workflow will be mounted at `/mnt/calling` and the base genstat directory at `/mnt/imise`
+The directory mounts need to be specified as environment variable. The directory
+containing the workflow will be mounted at `/mnt/calling` and the base genstat
+directory at `/mnt/imise`.
 
 ```{bash}
 # Build the image
@@ -1196,6 +1198,9 @@ singularity shell debian_calling.sif
 # change into the workflow directory of the Calling workflow
 cd /mnt/calling/workflow
 
+# check the DAG of the workflow (create an image)
+snakemake --configfile config/config.yaml --dag |dot -Tsvg > calling_dag.svg
+
 # Calculate all results
 snakemake --configfile ../config/config.yaml -c 4 all
 
@@ -1203,7 +1208,55 @@ snakemake --configfile ../config/config.yaml -c 4 all
 tree output_test
 ```
 
+## Read The Docs TODO
+
+Each analysis container
+
+We will use `ReadTheDocs`, powered by the python documentation generator `Sphinx` using the `sphinx_rtd_theme` to create and host documentation, because it is a widely-used and convenient. Text is written in the `ReStructuredText` (`RST`, files end on `.rst`) markup language
+
+* Using `ReadTheDocs`, based on `Sphinx`
+* Reicht Sphinx? (+ einem template)
+* Statt MD nutzt Sphinx reStructuredText markup language
+* RTD Tutorial: https://docs.readthedocs.io/en/stable/tutorial/index.html
+  - Mit GitHub Template & kostenlosem hosting auf RTD --> komplett integriert
+* Doc of the RTD sphinx theme: https://sphinx-rtd-tutorial.readthedocs.io/en/latest/folders.html
+* sphinx doc:
+* https://github.com/readthedocs/tutorial-template/generate to start a repository using the RTD template
+* rstcheck pygments m2r2? was machen die?
+* https://brendanhasz.github.io/2019/01/05/sphinx.html
+* https://www.writethedocs.org/guide/writing/beginners-guide-to-docs/
+
+
+```{bash}
+# Go to home directory (or any directory where to place a new project)
+cd ~/
+
+# Create a new environment with the sphinx documentation generator
+mamba create -c conda-forge -n sphinx sphinx sphinx_rtd_theme myst_parser
+conda activate sphinx
+
+# 
+sphinx-quickstart
+tree
+
+sphinx-build -b html sourcedir builddir
+```
+
+### NAKO Documentation
+
+* https://github.com/GenStatLeipzig/nako-documentation
+
 ## Future additions
+
+### Tests TODO
+
+Testing can be implemented on the level of each script, using test features provided by each programming language, on the level of the workflow language Snakemake and the level of the Singularity container. 
+
+* section `%test`
+
+### Benchmarking TODO
+
+Benchmarking is supported natively by Snakemake.
 
 ### Running jobs on the Uni Leipzig Galaxy Cluster
 
@@ -1228,14 +1281,6 @@ The Leipzig
 https://docs.sylabs.io/guides/latest/user-guide/plugins.html
 
 ### Caching and temporary data TODO
-
-### Tests TODO
-
-* section `%test`
-
-### Benchmarking TODO
-
-### Read The Docs TODO
 
 ### The image filesystem TODO
 
