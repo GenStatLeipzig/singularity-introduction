@@ -1208,14 +1208,78 @@ snakemake --configfile ../config/config.yaml -c 4 all
 tree output_test
 ```
 
-## Read The Docs TODO
+## Documentation with Sphinx & ReadTheDocs TODO
 
 Each analysis container
 
-We will use `ReadTheDocs`, powered by the python documentation generator `Sphinx` using the `sphinx_rtd_theme` to create and host documentation, because it is a widely-used and convenient. Text is written in the `ReStructuredText` (`RST`, files end on `.rst`) markup language
+We will use `ReadTheDocs`, powered by the python documentation generator
+`Sphinx`, using the `sphinx_rtd_theme` to create and host documentation,
+because it is  widely-used and convenient. Text is written in the
+`ReStructuredText` (`RST`, files end on `.rst`) markup language or in regular
+Markdown using the [MyST parser extension](https://myst-parser.readthedocs.io/en/latest/intro.html). 
+Sphinx can be installed using `conda`/`mamba` and a project can be initialized with
+`Sphinx` itself.
+
+```{bash}
+# Go to your home directory (or any directory where to place a new project)
+cd ~/
+
+# Create a new environment with the sphinx documentation generator
+mamba create -c conda-forge -n sphinx sphinx sphinx_rtd_theme myst_parser
+conda activate sphinx
+
+# Create a new directory and initialize a new Sphinx project 
+# Answer `y` to the first question and enter the corresponding information 
+# to the following questions
+sphinx-quickstart mySphinxProject
+cd mySphinxProject
+
+# check the structure
+tree
+
+# render documentation in the form `sphinx-build -b html sourcedir builddir`
+sphinx-build -b html source build
+
+# Or simply
+make html
+```
+
+The configuration file of the project is called `conf.py` and is used to change
+the html theme, meta-data, add extensions and other general configuration. For
+instance, we can change the default theme `alabaster` to the ReadTheDocs theme
+`sphinx_rtd_theme` to render HTML that looks like documentation hosted on
+ReadTheDocs.
+
+```{bash}
+# Replace the default html theme
+sed -i /alabaster/sphinx_rtd_theme/ source/conf.py
+
+# Re-rendering the project will produce different HTML output
+make html
+
+# Check the output and notice the different layout
+firefox _build/index.html
+```
+
+The basics of writing documentation using `ReStructuredText` are explained in
+the `Sphinx Quickstart Guide`
+[here](https://www.sphinx-doc.org/en/master/usage/quickstart.html). Documentation can then be written in the `RST`-format.
+
+To host the documentation using `ReadTheDocs`
+
+```{bash}
+# Green 'Use This Template' button 
+https://github.com/readthedocs/tutorial-template
+
+# This is the repository based on the template project above
+https://github.com/GenStatLeipzig/nako-documentation
+```
+
 
 * Using `ReadTheDocs`, based on `Sphinx`
-* Reicht Sphinx? (+ einem template)
+* Reicht Sphinx? (+  sphinx_rtd_template) --> RTD for hosting!
+* Myst statt RST nutzen? --> Vorteil einfaches MD
+* MKDocs statt Sphinx nutzen? --> Vorteil ???
 * Statt MD nutzt Sphinx reStructuredText markup language
 * RTD Tutorial: https://docs.readthedocs.io/en/stable/tutorial/index.html
   - Mit GitHub Template & kostenlosem hosting auf RTD --> komplett integriert
@@ -1223,30 +1287,77 @@ We will use `ReadTheDocs`, powered by the python documentation generator `Sphinx
 * sphinx doc:
 * https://github.com/readthedocs/tutorial-template/generate to start a repository using the RTD template
 * rstcheck pygments m2r2? was machen die?
+  + pygments macht syntax highlighting
+* extensions: myst_parser (um direkt md zu parsen)
+* MkDocs: https://docs.readthedocs.io/en/stable/intro/getting-started-with-mkdocs.html? macht das gleiche wie sphinx, eher nicht?
 * https://brendanhasz.github.io/2019/01/05/sphinx.html
 * https://www.writethedocs.org/guide/writing/beginners-guide-to-docs/
 
 
-```{bash}
-# Go to home directory (or any directory where to place a new project)
-cd ~/
-
-# Create a new environment with the sphinx documentation generator
-mamba create -c conda-forge -n sphinx sphinx sphinx_rtd_theme myst_parser
-conda activate sphinx
-
-# 
-sphinx-quickstart
-tree
-
-sphinx-build -b html sourcedir builddir
-```
-
 ### NAKO Documentation
 
+```{bash}
+# Install mkdocs
+mamba install -c conda-forge -n sphinx mkdocs
+
+
+```
+
+
 * https://github.com/GenStatLeipzig/nako-documentation
+* Use RTD Template
 
 ## Future additions
+
+### Leipzig HPC Cluster 'Galaxy'
+
+```{bash}
+# infrastruktur beantragen --> Uni Login
+https://service.rz.uni-leipzig.de/scientific-computing/sc-infrastruktur-beantragen/
+
+# Login konfigurieren (ssh key etc)
+https://portal.sc.uni-leipzig.de/account-overview
+
+# login via (replace cw897rwyu with your URZ user name)
+ssh cw897rwyu@galaxy101.sc.uni-leipzig.de
+ssh cw897rwyu@login01.sc.uni-leipzig.de # has the singularity installation
+
+# some info on the system
+whoami
+uname -a
+cat /etc/os-release
+singularity --version
+
+# Documentation available 
+https://www.sc.uni-leipzig.de/user-doc/
+
+# documentation for singularity
+https://www.sc.uni-leipzig.de/user-doc/tutorials/singularity/
+
+# transfer files to the cluster!
+https://www.sc.uni-leipzig.de/user-doc/quickstart/hpc/#copy-data-from-and-to-the-sc-systems
+```
+
+--> Test singularity on galaxy
+
+```{bash}
+# To use MPI load the module, MPICH is also available
+module keyword OpenMPI # search for MPI modules
+module spider OpenMPI/4.1.4-GCC-11.3.0 # Info about module
+module load OpenMPI/4.1.4-GCC-11.3.0
+
+# Python bindings for MPI 
+module spider SciPy-bundle/2022.05-foss-2022a
+
+# Python MPI API
+mpi4py
+
+# launcher
+mpiexec # normal launcher
+srun # for slurm
+
+```
+
 
 ### Tests TODO
 
