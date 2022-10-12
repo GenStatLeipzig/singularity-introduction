@@ -1199,7 +1199,7 @@ singularity shell debian_calling.sif
 cd /mnt/calling/workflow
 
 # check the DAG of the workflow (create an image)
-snakemake --configfile config/config.yaml --dag |dot -Tsvg > calling_dag.svg
+snakemake --configfile config/config.yaml --dag | dot -Tsvg > calling_dag.svg
 
 # Calculate all results
 snakemake --configfile ../config/config.yaml -c 4 all
@@ -1275,12 +1275,7 @@ https://github.com/readthedocs/tutorial-template
 https://github.com/GenStatLeipzig/nako-documentation
 ```
 
-
-* Using `ReadTheDocs`, based on `Sphinx`
-* Reicht Sphinx? (+  sphinx_rtd_template) --> RTD for hosting!
 * Myst statt RST nutzen? --> Vorteil einfaches MD
-* MKDocs statt Sphinx nutzen? --> Vorteil ???
-* Statt MD nutzt Sphinx reStructuredText markup language
 * RTD Tutorial: https://docs.readthedocs.io/en/stable/tutorial/index.html
   - Mit GitHub Template & kostenlosem hosting auf RTD --> komplett integriert
 * Doc of the RTD sphinx theme: https://sphinx-rtd-tutorial.readthedocs.io/en/latest/folders.html
@@ -1296,10 +1291,22 @@ https://github.com/GenStatLeipzig/nako-documentation
 
 ### NAKO Documentation
 
+A program similar to Sphinx but simpler to use is `MKDocs`
+
 ```{bash}
-# Install mkdocs
+# Install mkdocs (into the `sphinx` environment) 
 mamba install -c conda-forge -n sphinx mkdocs
 
+# neues projekt
+mkdocs new NAKO-Calling-Workflow
+mv NAKO-Calling-Workflow/* ./
+rmdir NAKO-Calling-Workflow/
+
+# This creates the documentation HTML and opens it in a webrowser
+mkdocs serve
+
+# In case it doesn't open automatically, start firefox manually
+firefox http://127.0.0.1:8000/
 
 ```
 
@@ -1319,26 +1326,23 @@ https://service.rz.uni-leipzig.de/scientific-computing/sc-infrastruktur-beantrag
 https://portal.sc.uni-leipzig.de/account-overview
 
 # login via (replace cw897rwyu with your URZ user name)
-ssh cw897rwyu@galaxy101.sc.uni-leipzig.de
+# galaxy: ssh cw897rwyu@galaxy101.sc.uni-leipzig.de
 ssh cw897rwyu@login01.sc.uni-leipzig.de # has the singularity installation
 
 # some info on the system
+pwd
 whoami
 uname -a
 cat /etc/os-release
-singularity --version
 
 # Documentation available 
 https://www.sc.uni-leipzig.de/user-doc/
-
-# documentation for singularity
-https://www.sc.uni-leipzig.de/user-doc/tutorials/singularity/
 
 # transfer files to the cluster!
 https://www.sc.uni-leipzig.de/user-doc/quickstart/hpc/#copy-data-from-and-to-the-sc-systems
 ```
 
---> Test singularity on galaxy
+MPI implementation on clara
 
 ```{bash}
 # To use MPI load the module, MPICH is also available
@@ -1356,6 +1360,24 @@ mpi4py
 mpiexec # normal launcher
 srun # for slurm
 
+```
+
+How to copy files 
+
+```{r}
+# transfer files to the cluster!
+https://www.sc.uni-leipzig.de/user-doc/quickstart/hpc/#copy-data-from-and-to-the-sc-systems
+
+scp SOME_FILE cw897rwyu@login01.sc.uni-leipzig.de:/home/sc.uni-leipzig.de/cw897rwyu/
+scp -r SOME_FOLDER/ cw897rwyu@login01.sc.uni-leipzig.de:/home/sc.uni-leipzig.de/cw897rwyu/
+```
+
+How to use Singularity
+
+```{bash}
+# documentation for singularity
+https://www.sc.uni-leipzig.de/user-doc/tutorials/singularity/
+singularity --version
 ```
 
 
